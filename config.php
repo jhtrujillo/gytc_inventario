@@ -24,7 +24,7 @@ if ($is_prod) {
     define('DB_PORT', '3306');
     define('DB_NAME', 'gytcinventariondb');
     define('DB_USER', 'dbinventariogytc');
-    define('DB_PASS', 'ESCRIBE_TU_CONTRASEÑA_AQUI'); // REEMPLAZAR con la contraseña real de DreamHost
+    define('DB_PASS', 'JT-sq16cy21'); // REEMPLAZAR con la contraseña real de DreamHost
 } else {
     // Credenciales por defecto para MAMP (Local)
     define('DB_HOST', '127.0.0.1');

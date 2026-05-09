@@ -197,6 +197,9 @@ header.navbar {
    ------------------------------------------------------------- */
 .table-responsive {
     overflow-x: auto;
+    width: 100%;
+    display: block;
+    -webkit-overflow-scrolling: touch;
     background: white;
     border-radius: var(--radius);
     border: 1px solid var(--border-color);
@@ -535,3 +538,55 @@ table.data-table tr:hover td {
         max-width: 100%;
     }
 }
+
+/* -------------------------------------------------------------
+   RESPONSIVE DEFINITIONS & OVERFLOW PREVENTION
+   ------------------------------------------------------------- */
+.hoja-vida-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 20px 0;
+    padding-bottom: 10px;
+}
+
+/* Prevenir que el papel físico colapse en anchos diminutos y forzar el scroll lateral en el wrapper */
+.hoja-vida-container {
+    min-width: 850px;
+}
+
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 0 12px;
+    }
+    
+    .nav-container {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+    
+    .nav-user {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr; /* Dos por fila en móvil */
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Aumentar legibilidad de tablas de datos en scroll horizontal */
+    .data-table {
+        min-width: 600px;
+    }
+    
+    /* Ajustar tabulador dinámico si existe */
+    .nav-tabs {
+        flex-wrap: wrap;
+    }
+}
+

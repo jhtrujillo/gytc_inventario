@@ -316,7 +316,8 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
         <form action="preop_create.php?crane_id=<?= $crane_id; ?>" method="POST" id="main-preop-form">
 
             <!-- CONTENEDOR DE LA HOJA DE VIDA (VISTA EXACTA DEL PAPEL FÍSICO) -->
-            <div class="hoja-vida-container">
+            <div class="hoja-vida-scroll-wrapper">
+                <div class="hoja-vida-container">
                 
                 <!-- ENCABEZADO -->
                 <div class="hv-header">
@@ -609,7 +610,9 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                     </div>
                 </div>
 
-            </div>
+                </div>
+
+            </div> <!-- Fin .hoja-vida-scroll-wrapper -->
 
             <!-- BARRA FLOTANTE DE GUARDADO (PERMANENTE EN PANTALLA) -->
             <div class="floating-action-bar no-print">

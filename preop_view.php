@@ -91,7 +91,8 @@ try {
         </div>
 
         <!-- CONTENEDOR DE LA HOJA DE VIDA (IDÉNTICO AL FORMATO FÍSICO) -->
-        <div class="hoja-vida-container">
+        <div class="hoja-vida-scroll-wrapper">
+            <div class="hoja-vida-container">
             
             <!-- ENCABEZADO -->
             <div class="hv-header">
@@ -272,7 +273,8 @@ try {
                 </div>
             </div>
 
-        </div>
+            </div>
+        </div> <!-- Fin .hoja-vida-scroll-wrapper -->
         
         <div style="text-align:center; margin-top:24px; font-size:11px; color:var(--text-muted);" class="no-print">
             <p>Generado digitalmente por G&TC Control de Grúas. Listo para imprimir en formato A4 / Carta.</p>
