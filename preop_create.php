@@ -99,12 +99,34 @@ try {
     // Ignorar si no hay anteriores
 }
 
+// Cargar lista de operadores activos para el datalist buscador
+$operators_list = [];
+try {
+    $stmt_operators = $pdo->query("SELECT id, fullname FROM users WHERE is_active = 1 ORDER BY fullname ASC");
+    $operators_list = $stmt_operators->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Silencioso si falla
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_add_activity']) && !isset($_POST['ajax_delete_activity'])) {
     // 1. Datos básicos (horómetros opcionales, por defecto 0 si están vacíos)
     $log_date = $_POST['log_date'] ?? date('Y-m-d');
     $horometro_truck = !empty($_POST['horometro_truck']) ? intval($_POST['horometro_truck']) : 0;
     $horometro_crane = !empty($_POST['horometro_crane']) ? intval($_POST['horometro_crane']) : 0;
     $operator_name = trim($_POST['operator_name'] ?? '');
+
+    // Buscar id del operador según el nombre seleccionado, o usar la sesión si no coincide
+    $operator_id = $_SESSION['user_id'];
+    if (!empty($operator_name)) {
+        try {
+            $stmt_op_id = $pdo->prepare("SELECT id FROM users WHERE fullname = ? LIMIT 1");
+            $stmt_op_id->execute([$operator_name]);
+            $found_id = $stmt_op_id->fetchColumn();
+            if ($found_id) {
+                $operator_id = intval($found_id);
+            }
+        } catch (PDOException $e) {}
+    }
 
     // 2. Documentación
     $doc_security = isset($_POST['doc_security']) ? 1 : 0;
@@ -142,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_add_activity'])
         $stmt = $pdo->prepare("INSERT INTO preop_logs (crane_id, operator_id, log_date, horometro_truck, horometro_crane, operator_name, doc_security, doc_medical, doc_card, doc_ppe, doc_extinguisher, sling_info, operating_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $crane_id,
-            $_SESSION['user_id'],
+            $operator_id,
             $log_date,
             $horometro_truck,
             $horometro_crane,
@@ -413,7 +435,12 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                                 <input type="date" name="log_date" value="<?= date('Y-m-d'); ?>" class="form-control-hv" required style="font-size:11px;">
                             </td>
                             <td>
-                                <input type="text" name="operator_name" value="<?= h($_SESSION['fullname'] ?? ''); ?>" class="form-control-hv" required style="text-transform:uppercase; font-size:11px; font-weight:700;">
+                                <input type="text" name="operator_name" id="operator_name" list="operators" value="<?= h($_SESSION['fullname'] ?? ''); ?>" class="form-control-hv" required style="text-transform:uppercase; font-size:11px; font-weight:700;" autocomplete="off">
+                                <datalist id="operators">
+                                    <?php foreach ($operators_list as $op): ?>
+                                        <option value="<?= h($op['fullname']); ?>"></option>
+                                    <?php endforeach; ?>
+                                </datalist>
                             </td>
                         </tr>
                     </thead>
