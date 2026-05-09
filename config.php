@@ -20,18 +20,18 @@ $is_prod = (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] !== 'localhost
 
 if ($is_prod) {
     // Credenciales para DreamHost (Producción)
-    define('DB_HOST', 'mysql.amamossupresencia.org');
+    define('DB_HOST', 'mysql.gytc.com.co');
     define('DB_PORT', '3306');
-    define('DB_NAME', 'gytcinventario');
-    define('DB_USER', 'gytcinventario');
-    define('DB_PASS', 'ESCRIBE_AQUI_TU_CONTRASEÑA_PROD'); // REEMPLAZAR con la contraseña real de DreamHost
+    define('DB_NAME', 'gytcinventariondb');
+    define('DB_USER', 'dbinventariogytc');
+    define('DB_PASS', 'ESCRIBE_TU_CONTRASEÑA_AQUI'); // REEMPLAZAR con la contraseña real de DreamHost
 } else {
     // Credenciales por defecto para MAMP (Local)
     define('DB_HOST', '127.0.0.1');
     define('DB_PORT', '8889'); // Cambiar a '8889' si tu MAMP usa ese puerto para MySQL
     define('DB_NAME', 'gytc_inventario');
     define('DB_USER', 'root');
-    define('DB_PASS', 'root'); 
+    define('DB_PASS', 'root');
 }
 
 // -------------------------------------------------------------
@@ -47,7 +47,7 @@ try {
 
     // Crear base de datos si no existe
     $pdo_init->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    
+
     // Conectar a la base de datos específica
     $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
     $pdo = new PDO($dsn, DB_USER, DB_PASS, [
@@ -73,21 +73,24 @@ try {
 /**
  * Escapar cadenas HTML para evitar ataques XSS
  */
-function h($string) {
+function h($string)
+{
     return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 /**
  * Verificar si el usuario está autenticado
  */
-function is_logged_in() {
+function is_logged_in()
+{
     return isset($_SESSION['user_id']);
 }
 
 /**
  * Requerir autenticación para ver una página
  */
-function require_login() {
+function require_login()
+{
     if (!is_logged_in()) {
         header("Location: login.php");
         exit;
@@ -97,7 +100,8 @@ function require_login() {
 /**
  * Requerir rol de administrador
  */
-function require_admin() {
+function require_admin()
+{
     require_login();
     if ($_SESSION['user_role'] !== 'admin') {
         header("Location: dashboard.php?error=" . urlencode("No tienes permisos para acceder a esta sección."));
@@ -108,7 +112,8 @@ function require_admin() {
 /**
  * Estructura de tablas y autoinstalador
  */
-function createTablesIfNotExist($pdo) {
+function createTablesIfNotExist($pdo)
+{
     // Tabla Users
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -193,7 +198,7 @@ function createTablesIfNotExist($pdo) {
         // admin / admin123
         $admin_pass = password_hash('admin123', PASSWORD_DEFAULT);
         $pdo->exec("INSERT INTO users (username, password, fullname, role) VALUES ('admin', '$admin_pass', 'Administrador G&TC', 'admin')");
-        
+
         // operador / operador123
         $user_pass = password_hash('operador123', PASSWORD_DEFAULT);
         $pdo->exec("INSERT INTO users (username, password, fullname, role) VALUES ('operador', '$user_pass', 'Germán Villarraga', 'user')");
@@ -261,7 +266,8 @@ function createTablesIfNotExist($pdo) {
 /**
  * Registra la lista de las 35 actividades de mantenimiento estándar por defecto para una grúa
  */
-function seedDefaultActivities($pdo, $crane_id) {
+function seedDefaultActivities($pdo, $crane_id)
+{
     $default_tasks = [
         ['code' => '100', 'type' => 'LUBRICACION', 'name' => 'Aceite motor Camión', 'freq' => 250],
         ['code' => '102', 'type' => 'LUBRICACION', 'name' => 'Caja auxiliar', 'freq' => 2000],
