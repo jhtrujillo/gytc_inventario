@@ -105,6 +105,11 @@ function createTablesIfNotExist($pdo) {
         password VARCHAR(255) NOT NULL,
         fullname VARCHAR(100) NOT NULL,
         role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+        document_id VARCHAR(50) DEFAULT '',
+        license_number VARCHAR(100) DEFAULT '',
+        license_expiry DATE DEFAULT NULL,
+        job_title VARCHAR(100) DEFAULT 'Operador de Grúa',
+        is_active TINYINT(1) DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB");
 
@@ -120,6 +125,7 @@ function createTablesIfNotExist($pdo) {
         motor_series VARCHAR(100) NOT NULL,
         fuel_type VARCHAR(50) DEFAULT 'DIESEL',
         fluids_info TEXT,
+        image_path VARCHAR(255) DEFAULT 'images/crane_xcmg.png',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB");
 
@@ -213,6 +219,31 @@ function createTablesIfNotExist($pdo) {
         if ($stmt_count->fetchColumn() == 0) {
             seedDefaultActivities($pdo, $cr['id']);
         }
+    }
+
+    // --- AUTO-REPARACIÓN DE ESQUEMA: ASEGURAR COLUMNAS RECIENTES ---
+    // Asegurar columnas de usuario (document_id, license_number, license_expiry, job_title, is_active)
+    $columns_users = $pdo->query("SHOW COLUMNS FROM users")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('document_id', $columns_users)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN document_id VARCHAR(50) DEFAULT '' AFTER role");
+    }
+    if (!in_array('license_number', $columns_users)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN license_number VARCHAR(100) DEFAULT '' AFTER document_id");
+    }
+    if (!in_array('license_expiry', $columns_users)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN license_expiry DATE DEFAULT NULL AFTER license_number");
+    }
+    if (!in_array('job_title', $columns_users)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN job_title VARCHAR(100) DEFAULT 'Operador de Grúa' AFTER license_expiry");
+    }
+    if (!in_array('is_active', $columns_users)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN is_active TINYINT(1) DEFAULT 1 AFTER job_title");
+    }
+
+    // Asegurar columnas de grúa (image_path)
+    $columns_cranes = $pdo->query("SHOW COLUMNS FROM cranes")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('image_path', $columns_cranes)) {
+        $pdo->exec("ALTER TABLE cranes ADD COLUMN image_path VARCHAR(255) DEFAULT 'images/crane_xcmg.png' AFTER fluids_info");
     }
 }
 
