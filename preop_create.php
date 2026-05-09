@@ -595,7 +595,7 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 <div class="hv-footer">
                     <div class="hv-footer-section">
                         <strong style="font-size:9px; text-transform:uppercase; color:var(--text-muted);">Nombre del Operador</strong>
-                        <div style="margin-top:10px; border-bottom:1.5px solid #000; height:35px; display:flex; align-items:flex-end; padding-bottom:4px; font-weight:700; font-size:13px; text-transform:uppercase; color: var(--primary);">
+                        <div id="signature_operator_name" style="margin-top:10px; border-bottom:1.5px solid #000; height:35px; display:flex; align-items:flex-end; padding-bottom:4px; font-weight:700; font-size:13px; text-transform:uppercase; color: var(--primary);">
                             <?= h($_SESSION['fullname'] ?? 'OPERADOR'); ?>
                         </div>
                     </div>
@@ -723,6 +723,17 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 </td>
             `;
             tbody.appendChild(tr);
+        }
+
+        // Sincronizar campo Nombre de Operador con la firma inferior en tiempo real
+        const operatorNameInput = document.getElementById('operator_name');
+        const signatureNameDiv = document.getElementById('signature_operator_name');
+        if (operatorNameInput && signatureNameDiv) {
+            operatorNameInput.addEventListener('input', function() {
+                signatureNameDiv.textContent = this.value.trim().toUpperCase() || 'OPERADOR';
+            });
+            // Ejecutar inicialmente para sincronizar al cargar la página
+            signatureNameDiv.textContent = operatorNameInput.value.trim().toUpperCase() || 'OPERADOR';
         }
     </script>
 </body>
