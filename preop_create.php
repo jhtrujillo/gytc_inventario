@@ -595,9 +595,7 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 <div class="hv-footer">
                     <div class="hv-footer-section">
                         <strong style="font-size:9px; text-transform:uppercase; color:var(--text-muted);">Nombre del Operador</strong>
-                        <div id="signature_operator_name" style="margin-top:10px; border-bottom:1.5px solid #000; height:35px; display:flex; align-items:flex-end; padding-bottom:4px; font-weight:700; font-size:13px; text-transform:uppercase; color: var(--primary);">
-                            <?= h($_SESSION['fullname'] ?? 'OPERADOR'); ?>
-                        </div>
+                        <input type="text" name="operator_name_signature" id="operator_name_signature" list="operators" value="<?= h($_SESSION['fullname'] ?? ''); ?>" required style="border:none; border-bottom:1.5px solid #000; height:35px; width:100%; font-weight:700; font-size:13px; text-transform:uppercase; color: var(--primary); padding:0; background:transparent; outline:none; margin-top:10px;" autocomplete="off" placeholder="ESCRIBE O SELECCIONA OPERADOR">
                     </div>
                     <div class="hv-footer-section" style="background:#eff6ff;">
                         <strong style="font-size:9px; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:8px;">Condición Operativa del Equipo *</strong>
@@ -725,15 +723,19 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
             tbody.appendChild(tr);
         }
 
-        // Sincronizar campo Nombre de Operador con la firma inferior en tiempo real
+        // Sincronizar el campo de texto superior de Operador con la firma inferior en tiempo real bidireccional
         const operatorNameInput = document.getElementById('operator_name');
-        const signatureNameDiv = document.getElementById('signature_operator_name');
-        if (operatorNameInput && signatureNameDiv) {
+        const operatorSignatureInput = document.getElementById('operator_name_signature');
+        if (operatorNameInput && operatorSignatureInput) {
             operatorNameInput.addEventListener('input', function() {
-                signatureNameDiv.textContent = this.value.trim().toUpperCase() || 'OPERADOR';
+                operatorSignatureInput.value = this.value.toUpperCase();
             });
-            // Ejecutar inicialmente para sincronizar al cargar la página
-            signatureNameDiv.textContent = operatorNameInput.value.trim().toUpperCase() || 'OPERADOR';
+            operatorSignatureInput.addEventListener('input', function() {
+                operatorNameInput.value = this.value.toUpperCase();
+            });
+            
+            // Sincronizar inicialmente
+            operatorSignatureInput.value = operatorNameInput.value.toUpperCase();
         }
     </script>
 </body>
