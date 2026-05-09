@@ -167,8 +167,10 @@ $success_msg = $_GET['success'] ?? '';
                     <?php if (count($cranes) > 0): ?>
                         <?php foreach ($cranes as $crane): ?>
                             <tr>
-                                <td style="font-weight: 600; color: var(--primary);">
-                                    <?= h($crane['machine_name']); ?>
+                                <td style="font-weight: 600;">
+                                    <a href="crane_view.php?crane_id=<?= $crane['id']; ?>" style="color: var(--primary); text-decoration: none;">
+                                        <?= h($crane['machine_name']); ?>
+                                    </a>
                                 </td>
                                 <td><?= h($crane['brand']); ?></td>
                                 <td><?= h($crane['line']); ?></td>
@@ -200,63 +202,7 @@ $success_msg = $_GET['success'] ?? '';
             </table>
         </div>
 
-        <!-- Sección de Reportes Preoperacionales Recientes -->
-        <div class="header-section" style="margin-top: 48px;">
-            <h2>Historial de Reportes Preoperacionales Recientes</h2>
-        </div>
 
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Grúa / Equipo</th>
-                        <th>Operador</th>
-                        <th>Horómetro Camión</th>
-                        <th>Horómetro Grúa</th>
-                        <th>Estado Operativo</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($recent_logs) > 0): ?>
-                        <?php foreach ($recent_logs as $log): ?>
-                            <tr>
-                                <td style="font-weight: 500;">
-                                    <?= date('d/m/Y', strtotime($log['log_date'])); ?>
-                                </td>
-                                <td>
-                                    <strong><?= h($log['brand']); ?></strong> - <?= h($log['line']); ?>
-                                </td>
-                                <td><?= h($log['operator_full']); ?></td>
-                                <td><?= number_format($log['horometro_truck']); ?> Hrs</td>
-                                <td><?= number_format($log['horometro_crane']); ?> Hrs</td>
-                                <td>
-                                    <?php if ($log['operating_status'] === 'approved'): ?>
-                                        <span class="badge badge-success">Aprobado</span>
-                                    <?php elseif ($log['operating_status'] === 'pending'): ?>
-                                        <span class="badge badge-warning">Pendiente</span>
-                                    <?php else: ?>
-                                        <span class="badge badge-danger">No Aprobado</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <a href="preop_view.php?id=<?= $log['id']; ?>" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
-                                        Ver / Imprimir
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px;">
-                                No hay reportes preoperacionales registrados.
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
 
     </main>
 </body>
