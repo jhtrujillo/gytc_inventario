@@ -13,15 +13,26 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // -------------------------------------------------------------
-// CONFIGURACIÓN DE BASE DE DATOS (Ajustar según entorno)
+// CONFIGURACIÓN DE BASE DE DATOS (Detección Automática de Entorno)
 // -------------------------------------------------------------
+// Determinar si estamos en producción verificando el HOST
+$is_prod = (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] !== 'localhost' && $_SERVER['HTTP_HOST'] !== '127.0.0.1' && strpos($_SERVER['HTTP_HOST'], ':8000') === false);
 
-// Credenciales por defecto para MAMP (Mac)
-define('DB_HOST', '127.0.0.1');
-define('DB_PORT', '8889'); // Cambiar a '8889' si tu MAMP usa ese puerto para MySQL
-define('DB_NAME', 'gytc_inventario');
-define('DB_USER', 'root');
-define('DB_PASS', 'root'); // MAMP por defecto usa 'root' como contraseña, en DreamHost cámbialo por la tuya
+if ($is_prod) {
+    // Credenciales para DreamHost (Producción)
+    define('DB_HOST', 'mysql.amamossupresencia.org');
+    define('DB_PORT', '3306');
+    define('DB_NAME', 'gytcinventario');
+    define('DB_USER', 'gytcinventario');
+    define('DB_PASS', 'ESCRIBE_AQUI_TU_CONTRASEÑA_PROD'); // REEMPLAZAR con la contraseña real de DreamHost
+} else {
+    // Credenciales por defecto para MAMP (Local)
+    define('DB_HOST', '127.0.0.1');
+    define('DB_PORT', '8889'); // Cambiar a '8889' si tu MAMP usa ese puerto para MySQL
+    define('DB_NAME', 'gytc_inventario');
+    define('DB_USER', 'root');
+    define('DB_PASS', 'root'); 
+}
 
 // -------------------------------------------------------------
 // CONEXIÓN PDO Y CREACIÓN AUTOMÁTICA (Para instalación fácil)
