@@ -3,3 +3,6 @@
 .idea/
 .gemini/
 *.log
+deploy_*.zip
+deploy_*/
+scratch/

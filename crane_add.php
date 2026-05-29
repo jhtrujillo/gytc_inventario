@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $motor_series = trim($_POST['motor_series'] ?? '');
     $fuel_type = trim($_POST['fuel_type'] ?? 'DIESEL');
 
+    $crane_code = trim($_POST['crane_code'] ?? '');
+
     // Estructurar fluidos como JSON
     $fluids = [
         'aceite_motor' => trim($_POST['aceite_motor'] ?? ''),
@@ -22,10 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     $fluids_json = json_encode($fluids, JSON_UNESCAPED_UNICODE);
 
-    if (!empty($brand) && !empty($line) && !empty($capacity) && !empty($model) && !empty($chassis_series) && !empty($motor_series)) {
+    if (!empty($crane_code) && !empty($brand) && !empty($line) && !empty($capacity) && !empty($model) && !empty($chassis_series) && !empty($motor_series)) {
         try {
-            $stmt = $pdo->prepare("INSERT INTO cranes (machine_name, brand, line, capacity, model, chassis_series, motor_series, fuel_type, fluids_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO cranes (crane_code, machine_name, brand, line, capacity, model, chassis_series, motor_series, fuel_type, fluids_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
+                $crane_code,
                 $machine_name,
                 $brand,
                 $line,
@@ -89,9 +92,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form action="crane_add.php" method="POST">
                 <h3 style="font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px; font-weight: 600; color: var(--text-muted);">Características del Equipo</h3>
 
-                <div class="form-group">
-                    <label for="machine_name">Nombre de Máquina / Tipo de Equipo *</label>
-                    <input type="text" id="machine_name" name="machine_name" class="form-control" value="GRÚAS SOBRE RUEDAS- PLUMATELESCOPICA" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="crane_code">Código de Grúa / Equipo *</label>
+                        <input type="text" id="crane_code" name="crane_code" class="form-control" placeholder="Ej: G-02" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="machine_name">Nombre de Máquina / Tipo de Equipo *</label>
+                        <input type="text" id="machine_name" name="machine_name" class="form-control" value="GRÚAS SOBRE RUEDAS- PLUMATELESCOPICA" required>
+                    </div>
                 </div>
 
                 <div class="form-row">

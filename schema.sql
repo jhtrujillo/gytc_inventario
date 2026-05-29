@@ -58,7 +58,8 @@ CREATE TABLE IF NOT EXISTS preop_logs (
     -- Información de eslingas (en formato JSON)
     sling_info TEXT,
     -- Estado de operación de la grúa
-    operating_status ENUM('approved', 'not_approved', 'pending') NOT NULL DEFAULT 'pending',
+    operating_status ENUM('approved', 'rejected', 'pending') NOT NULL DEFAULT 'pending',
+    signature_data LONGTEXT, -- Contiene la firma electrónica en base64
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (crane_id) REFERENCES cranes(id) ON DELETE CASCADE,
     FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE CASCADE

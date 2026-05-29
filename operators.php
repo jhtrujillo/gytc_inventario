@@ -135,11 +135,11 @@ try {
                     <?php if (count($users) > 0): ?>
                         <?php foreach ($users as $u): ?>
                             <tr>
-                                <td><strong><?= h($u['fullname']); ?></strong></td>
-                                <td><?= h($u['document_id'] ?: 'No registrado'); ?></td>
-                                <td><?= h($u['job_title'] ?: 'Operador de Grúa'); ?></td>
-                                <td><?= h($u['license_number'] ?: 'No registrada'); ?></td>
-                                <td>
+                                <td data-label="Nombre Completo"><strong><?= h($u['fullname']); ?></strong></td>
+                                <td data-label="Cédula / ID"><?= h($u['document_id'] ?: 'No registrado'); ?></td>
+                                <td data-label="Cargo / Especialidad"><?= h($u['job_title'] ?: 'Operador de Grúa'); ?></td>
+                                <td data-label="Licencia / Certificación"><?= h($u['license_number'] ?: 'No registrada'); ?></td>
+                                <td data-label="Vencimiento">
                                     <?php if ($u['license_expiry']): ?>
                                         <?php 
                                         $expiry = strtotime($u['license_expiry']);
@@ -152,18 +152,18 @@ try {
                                         <span style="color: var(--text-muted);">N/A</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><code><?= h($u['username']); ?></code></td>
-                                <td>
+                                <td data-label="Usuario"><code><?= h($u['username']); ?></code></td>
+                                <td data-label="Rol">
                                     <span class="badge <?= $u['role'] === 'admin' ? 'badge-role-admin' : 'badge-role-user'; ?>">
                                         <?= $u['role'] === 'admin' ? 'Administrador' : 'Operador'; ?>
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Estado">
                                     <span class="badge <?= $u['is_active'] ? 'badge-active' : 'badge-inactive'; ?>">
                                         <?= $u['is_active'] ? 'Activo' : 'Inactivo'; ?>
                                     </span>
                                 </td>
-                                <td style="text-align: right;">
+                                <td data-label="" style="text-align: right;">
                                     <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                         <a href="operator_edit.php?id=<?= $u['id']; ?>" class="btn btn-secondary btn-sm" style="padding: 4px 8px;">✏️ Editar</a>
                                         <?php if ($u['id'] !== intval($_SESSION['user_id'])): ?>

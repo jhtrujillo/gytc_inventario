@@ -97,6 +97,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-align: left;
         }
     </style>
+
+    <!-- CONFIGURACIÓN PWA (Aplicación Instalable) -->
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="images/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('PWA Habilitada en Login'))
+                    .catch(err => console.log('Err PWA:', err));
+            });
+        }
+    </script>
 </head>
 <body>
     <div class="login-wrapper">

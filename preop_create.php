@@ -90,11 +90,21 @@ try {
     $stmt_last_log = $pdo->prepare("SELECT * FROM preop_logs WHERE crane_id = ? ORDER BY id DESC LIMIT 1");
     $stmt_last_log->execute([$crane_id]);
     $prev_log = $stmt_last_log->fetch(PDO::FETCH_ASSOC);
-    if ($prev_log) {
-        $stmt_prev_tasks = $pdo->prepare("SELECT task_code, current_value, last_change_date, next_change_value, status FROM preop_tasks WHERE log_id = ?");
-        $stmt_prev_tasks->execute([$prev_log['id']]);
-        $prev_tasks = $stmt_prev_tasks->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC);
-    }
+    
+    // Obtener los valores de tareas más recientes de manera de Carry Forward por código individual para esta grúa
+    $stmt_prev_tasks = $pdo->prepare("
+        SELECT t.task_code, t.current_value, t.current_value_truck, t.last_change_date, t.next_change_value, t.next_change_value_truck, t.status
+        FROM preop_tasks t
+        JOIN preop_logs l ON t.log_id = l.id
+        WHERE l.crane_id = ? AND l.id = (
+            SELECT MAX(sub_l.id)
+            FROM preop_logs sub_l
+            JOIN preop_tasks sub_t ON sub_t.log_id = sub_l.id
+            WHERE sub_l.crane_id = l.crane_id AND sub_t.task_code = t.task_code
+        )
+    ");
+    $stmt_prev_tasks->execute([$crane_id]);
+    $prev_tasks = $stmt_prev_tasks->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Ignorar si no hay anteriores
 }
@@ -154,14 +164,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_add_activity'])
     }
     $sling_info_json = json_encode($slings, JSON_UNESCAPED_UNICODE);
 
-    // 4. Estado operativo
-    $operating_status = $_POST['operating_status'] ?? 'pending';
+    // 5. Captura de Firma Digital
+    $signature_data = $_POST['signature_data'] ?? null;
 
     try {
         $pdo->beginTransaction();
 
         // Guardar reporte de cabecera
-        $stmt = $pdo->prepare("INSERT INTO preop_logs (crane_id, operator_id, log_date, horometro_truck, horometro_crane, operator_name, doc_security, doc_medical, doc_card, doc_ppe, doc_extinguisher, sling_info, operating_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO preop_logs (crane_id, operator_id, log_date, horometro_truck, horometro_crane, operator_name, doc_security, doc_medical, doc_card, doc_ppe, doc_extinguisher, sling_info, operating_status, signature_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $crane_id,
             $operator_id,
@@ -175,19 +185,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_add_activity'])
             $doc_ppe,
             $doc_extinguisher,
             $sling_info_json,
-            $operating_status
+            $operating_status,
+            $signature_data
         ]);
         
         $log_id = $pdo->lastInsertId();
 
         // Guardar reporte de tareas individuales
-        $stmt_task = $pdo->prepare("INSERT INTO preop_tasks (log_id, task_code, task_type, task_name, frequency, current_value, last_change_date, next_change_value, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt_task = $pdo->prepare("INSERT INTO preop_tasks (log_id, task_code, task_type, task_name, frequency, current_value, current_value_truck, last_change_date, next_change_value, next_change_value_truck, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         
         foreach ($default_tasks as $index => $task) {
-            $current_val = intval($_POST["task_curr_" . $task['code']] ?? 1);
+            $current_val = intval($_POST["task_curr_crane_" . $task['code']] ?? 0);
+            $current_val_truck = intval($_POST["task_curr_truck_" . $task['code']] ?? 0);
             $last_date = $_POST["task_date_" . $task['code']] ?? null;
             if (empty($last_date)) $last_date = null;
-            $next_val = intval($_POST["task_next_" . $task['code']] ?? ($current_val + $task['freq']));
+            $next_val = intval($_POST["task_next_crane_" . $task['code']] ?? 0);
+            $next_val_truck = intval($_POST["task_next_truck_" . $task['code']] ?? 0);
             $status = $_POST["task_status_" . $task['code']] ?? 'Normal';
 
             $stmt_task->execute([
@@ -197,8 +210,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_add_activity'])
                 $task['name'],
                 $task['freq'],
                 $current_val,
+                $current_val_truck,
                 $last_date,
                 $next_val,
+                $next_val_truck,
                 $status
             ]);
         }
@@ -287,11 +302,113 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 display: none !important;
             }
         }
+
+        /* NUEVOS ESTILOS RESPONSIVE EXCLUSIVOS PARA LA CREACIÓN EN MÓVIL */
+        @media screen and (max-width: 768px) {
+            .hoja-vida-container {
+                min-width: 100% !important;
+                border: none;
+                box-shadow: none;
+                margin: 0;
+            }
+            .hv-header, .hv-grid-2, .hv-doc-checklist, .hv-footer {
+                display: flex;
+                flex-direction: column;
+            }
+            .hv-header-right, .hv-tech-cell, .hv-doc-row, .hv-footer-section {
+                border: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            .hv-photo-container {
+                border-left: none;
+                border-top: 1px solid #e2e8f0;
+                padding: 20px 0;
+            }
+            .hv-doc-row {
+                justify-content: space-between;
+                padding: 12px 16px;
+                border-right: none !important;
+            }
+            
+            /* TABLAS TRANSFORMADAS EN TARJETAS DE ENTRADA DE DATOS */
+            .hv-table thead tr:first-child { display: none; } /* Ocultar cabeceras de tabla planas */
+            .hv-table, .hv-table tbody, .hv-table tr, .hv-table td {
+                display: block;
+                width: 100%;
+            }
+            .hv-table tr {
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-bottom: 16px;
+                padding: 12px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            }
+            .hv-table td {
+                border: none;
+                border-bottom: 1px solid #f1f5f9;
+                padding: 12px 6px;
+                text-align: right;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 14px;
+            }
+            .hv-table td:last-child { 
+                border-bottom: none;
+                background: #f8fafc;
+                margin: 8px -12px -12px -12px;
+                padding: 12px;
+                border-radius: 0 0 12px 12px;
+                justify-content: center;
+            }
+            
+            /* Insertar labels contextuales */
+            .hv-table td::before {
+                content: attr(data-label);
+                font-weight: 700;
+                color: var(--text-muted);
+                font-size: 11px;
+                text-transform: uppercase;
+                text-align: left;
+                flex: 1;
+                padding-right: 8px;
+            }
+            
+            /* Estilo del control dentro de la tarjeta */
+            .hv-table td .form-control-hv, .hv-table td input, .hv-table td span {
+                width: 60% !important;
+                text-align: right !important;
+                font-size: 13px;
+                height: 38px;
+                background: #f0f4f8;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                padding: 0 10px;
+            }
+
+            .hv-table td[data-label=""]::before, .hv-table td:empty::before { display: none; }
+            
+            .floating-action-bar {
+                left: 16px;
+                right: 16px;
+                bottom: 16px;
+                border-radius: 16px;
+                flex-direction: row;
+                justify-content: space-between;
+                padding: 12px;
+                width: calc(100% - 32px);
+            }
+            
+            .hoja-vida-container div[style*="grid-template-columns"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
     </style>
 </head>
 <body style="background-color: #f1f5f9; padding-top: 24px; padding-bottom: 120px;">
 
-    <div class="container" style="max-width: 900px;">
+    <div class="container" style="max-width: 1300px;">
         
         <!-- BARRA DE ACCIONES SUPERIOR -->
         <div class="card" style="margin-bottom: 20px; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;">
@@ -300,7 +417,7 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 <a href="dashboard.php" style="text-decoration:none; font-weight:600; color:var(--primary);">Volver al Dashboard</a>
             </div>
             <div>
-                <span style="font-size: 13px; color: var(--text-muted);">Registrando reporte para: <strong><?= h($crane['brand']); ?> - <?= h($crane['line']); ?></strong></span>
+                <span style="font-size: 13px; color: var(--text-muted);">Registrando reporte para: <strong>[<?= h($crane['crane_code'] ?: 'S/C'); ?>] <?= h($crane['brand']); ?> - <?= h($crane['line']); ?></strong></span>
             </div>
         </div>
 
@@ -322,8 +439,8 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 <!-- ENCABEZADO -->
                 <div class="hv-header">
                     <div class="hv-header-left">
-                        <h2 style="font-size:10px; font-weight:bold; color:var(--text-muted); margin-bottom: 2px;">HOJA DE VIDA DE EQUIPO</h2>
-                        <h1 style="font-size:14px; font-weight:800; color:#1e3a8a; letter-spacing:0.5px;">GRÚAS Y TRANSPORTES DE COLOMBIA SAS</h1>
+                        <h2>HOJA DE VIDA DE EQUIPO</h2>
+                        <h1>GRÚAS Y TRANSPORTES DE COLOMBIA SAS</h1>
                     </div>
                     <div class="hv-header-right">
                         <div class="hv-header-cell"><strong>FORMATO:</strong> MT-F-07</div>
@@ -335,31 +452,31 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 <!-- SECCIÓN 1: CARACTERÍSTICAS DEL EQUIPO Y REGISTRO FOTOGRÁFICO -->
                 <div class="hv-section-title">Características del Equipo e Identificación Técnica</div>
                 
-                <div class="hv-grid-2" style="border-bottom: 2px solid #1e293b;">
+                <div class="hv-grid-2" style="border-bottom: 2px solid #334155;">
                     <!-- Detalles de Especificación -->
                     <div style="display:flex; flex-direction:column;">
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b; background:#f8fafc;">
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1; background:#f8fafc;">
                             <strong>MÁQUINA:</strong> <?= h($crane['machine_name']); ?>
                         </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #1e293b;">
-                            <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>MARCA:</strong> <?= h($crane['brand']); ?></div>
-                            <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>NRO REGISTRO:</strong> MT<?= str_pad($crane['id'], 5, '0', STR_PAD_LEFT); ?></div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #cbd5e1;">
+                            <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>MARCA:</strong> <?= h($crane['brand']); ?></div>
+                            <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>NRO REGISTRO:</strong> MT<?= str_pad($crane['id'], 5, '0', STR_PAD_LEFT); ?></div>
                         </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #1e293b;">
-                            <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>LÍNEA:</strong> <?= h($crane['line']); ?></div>
-                            <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>MODELO:</strong> <?= h($crane['model']); ?></div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #cbd5e1;">
+                            <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>LÍNEA:</strong> <?= h($crane['line']); ?></div>
+                            <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>MODELO:</strong> <?= h($crane['model']); ?></div>
                         </div>
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b; border-bottom:1px solid #1e293b;">
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">
                             <strong>CAPACIDAD:</strong> <?= h($crane['capacity']); ?>
                         </div>
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b; border-bottom:1px solid #1e293b;">
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">
                             <strong>SERIE CHASIS:</strong> <?= h($crane['chassis_series']); ?>
                         </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #1e293b;">
-                            <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>SERIE MOTOR:</strong> <?= h($crane['motor_series']); ?></div>
-                            <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>COMBUSTIBLE:</strong> <?= h($crane['fuel_type']); ?></div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #cbd5e1;">
+                            <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>SERIE MOTOR:</strong> <?= h($crane['motor_series']); ?></div>
+                            <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>COMBUSTIBLE:</strong> <?= h($crane['fuel_type']); ?></div>
                         </div>
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b; font-size:10px; line-height:1.4;">
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1; line-height:1.5;">
                             <strong>FLUIDOS Y CAPACIDADES:</strong><br>
                             • Aceite Motor: <?= h($fluids['aceite_motor'] ?? 'N/A'); ?><br>
                             • Aceite Hidráulico: <?= h($fluids['aceite_hidraulico'] ?? 'N/A'); ?><br>
@@ -374,7 +491,7 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 </div>
 
                 <!-- SECCIÓN 2: DOCUMENTACIÓN (CAMPOS EDITABLES DIRECTOS) -->
-                <div class="hv-section-title" style="border-top: 1px solid #1e293b;">Validación de Documentación Operativa</div>
+                <div class="hv-section-title" style="border-top: 1px solid #334155;">Validación de Documentación Operativa</div>
                 <div class="hv-doc-checklist">
                     <div class="hv-doc-row">
                         <span>Planilla de Seguridad del Operador</span>
@@ -422,21 +539,23 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                             <th style="width: 100px;">Fecha Act. *</th>
                             <th style="width: 160px;">Operador Equipo *</th>
                         </tr>
-                        <tr>
-                            <td style="font-weight:bold; text-align: center; font-size:12px;">G-<?= str_pad($crane['id'], 2, '0', STR_PAD_LEFT); ?></td>
-                            <td style="text-align:center; font-size:11px; font-weight:600;"><?= h($crane['brand']) . ' ' . h($crane['line']); ?></td>
-                            <td style="text-align:center; font-size:11px; font-weight:600;"><?= h($crane['model']); ?></td>
-                            <td>
-                                <input type="number" name="horometro_truck" value="<?= isset($prev_log['horometro_truck']) ? $prev_log['horometro_truck'] : ''; ?>" class="form-control-hv" placeholder="Opcional" min="0" style="font-size:12px; font-weight:700;">
+                    </thead>
+                    <tbody>
+                        <tr style="background-color: #f1f5f9;">
+                            <td data-label="Código" style="font-weight:bold; text-align: center; font-size:13px; color:#1e3a8a;"><?= h($crane['crane_code'] ?: 'G-' . str_pad($crane['id'], 2, '0', STR_PAD_LEFT)); ?></td>
+                            <td data-label="Marca Equipo" style="text-align:center; font-size:12px; font-weight:700;"><?= h($crane['brand']) . ' ' . h($crane['line']); ?></td>
+                            <td data-label="Modelo Equipo" style="text-align:center; font-size:12px; font-weight:700;"><?= h($crane['model']); ?></td>
+                            <td data-label="Horómetro Camión">
+                                <input type="number" name="horometro_truck" value="<?= isset($prev_log['horometro_truck']) ? $prev_log['horometro_truck'] : ''; ?>" class="form-control-hv" placeholder="Opcional" min="0" style="font-size:13px; font-weight:700;">
                             </td>
-                            <td>
-                                <input type="number" name="horometro_crane" value="<?= isset($prev_log['horometro_crane']) ? $prev_log['horometro_crane'] : ''; ?>" class="form-control-hv" placeholder="Opcional" min="0" style="font-size:12px; font-weight:700;">
+                            <td data-label="Horómetro Grúa">
+                                <input type="number" name="horometro_crane" value="<?= isset($prev_log['horometro_crane']) ? $prev_log['horometro_crane'] : ''; ?>" class="form-control-hv" placeholder="Opcional" min="0" style="font-size:13px; font-weight:700;">
                             </td>
-                            <td>
-                                <input type="date" name="log_date" value="<?= date('Y-m-d'); ?>" class="form-control-hv" required style="font-size:11px;">
+                            <td data-label="Fecha Act.">
+                                <input type="date" name="log_date" value="<?= date('Y-m-d'); ?>" class="form-control-hv" required style="font-size:12px;">
                             </td>
-                            <td>
-                                <input type="text" name="operator_name" id="operator_name" list="operators" value="<?= h($_SESSION['fullname'] ?? ''); ?>" class="form-control-hv" required style="text-transform:uppercase; font-size:11px; font-weight:700;" autocomplete="off">
+                            <td data-label="Operador">
+                                <input type="text" name="operator_name" id="operator_name" list="operators" value="<?= h($_SESSION['fullname'] ?? ''); ?>" class="form-control-hv" required style="text-transform:uppercase; font-size:12px; font-weight:700;" autocomplete="off">
                                 <datalist id="operators">
                                     <?php foreach ($operators_list as $op): ?>
                                         <option value="<?= h($op['fullname']); ?>"></option>
@@ -444,21 +563,21 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                                 </datalist>
                             </td>
                         </tr>
-                    </thead>
+                    </tbody>
                 </table>
 
                 <!-- AGREGAR ACTIVIDAD AL VUELO (INTEGRADO EN EL FORMULARIO) -->
-                <details style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 8px; padding: 12px 16px; margin: 20px 0;" class="no-print">
-                    <summary style="font-weight: 700; color: var(--primary); cursor: pointer; font-size: 13px;">
+                <details style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 8px; padding: 14px 18px; margin: 20px 0;" class="no-print">
+                    <summary style="font-weight: 700; color: var(--primary); cursor: pointer; font-size: 14px;">
                         ➕ ¿Deseas agregar una nueva actividad de mantenimiento a esta máquina sobre la marcha? (Haz clic aquí)
                     </summary>
                     <div style="margin-top: 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
                         <div style="flex: 1; min-width: 100px;">
-                            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Código *</label>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Código *</label>
                             <input type="text" id="new_task_code" class="form-control" placeholder="Ej: 920" style="padding: 6px; font-size: 12px;">
                         </div>
                         <div style="flex: 1.5; min-width: 130px;">
-                            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Tipo *</label>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Tipo *</label>
                             <select id="new_task_type" class="form-control" style="padding: 6px; font-size: 12px; height: auto;">
                                 <option value="LUBRICACION">LUBRICACION</option>
                                 <option value="ENGRASE">ENGRASE</option>
@@ -470,11 +589,11 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                             </select>
                         </div>
                         <div style="flex: 3; min-width: 200px;">
-                            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Nombre de Actividad *</label>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Nombre de Actividad *</label>
                             <input type="text" id="new_task_name" class="form-control" placeholder="Ej: Cambio de poleas" style="padding: 6px; font-size: 12px;">
                         </div>
                         <div style="flex: 1.5; min-width: 100px;">
-                            <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Frecuencia (Hrs) *</label>
+                            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">Frecuencia (Hrs) *</label>
                             <input type="number" id="new_frequency" class="form-control" placeholder="Ej: 500" style="padding: 6px; font-size: 12px;">
                         </div>
                         <button type="button" class="btn btn-primary" onclick="submitNewActivity()" style="padding: 8px 16px; font-size: 12px; font-weight: 600; height: 35px; background: #2563eb;">➕ Agregar Actividad</button>
@@ -486,48 +605,103 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                         <tr>
                             <th style="width: 50px;">Código</th>
                             <th style="width: 100px;">Tipo</th>
-                            <th class="left-align" style="text-align:left; padding-left:8px;">Actividad de Mantenimiento</th>
+                            <th class="left-align" style="text-align:left; padding-left:12px;">Actividad de Mantenimiento</th>
                             <th style="width: 80px;">Frecuencia</th>
-                            <th style="width: 100px;">Cambio Actual</th>
+                            <th style="width: 90px;">Horómetro Grúa (Actual)</th>
+                            <th style="width: 90px;">Horómetro Camión (Actual)</th>
                             <th style="width: 110px;">Fecha de Cambio</th>
-                            <th style="width: 100px;">Próximo Cambio</th>
+                            <th style="width: 90px;">Horómetro Grúa (Próximo)</th>
+                            <th style="width: 90px;">Horómetro Camión (Próximo)</th>
                             <th style="width: 50px;" class="no-print">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($default_tasks as $task): 
                             $code = $task['code'];
-                            $val_curr = isset($prev_tasks[$code]) ? $prev_tasks[$code]['current_value'] : 1;
+                            $is_truck = (stripos($task['name'], 'camion') !== false || stripos($task['name'], 'camión') !== false || in_array(substr($code, 0, 1), ['1', '2', '3', '4', '5']));
+                            
+                            if ($is_truck) {
+                                $val_curr_crane = 0;
+                                $val_curr_truck = isset($prev_tasks[$code]) ? $prev_tasks[$code]['current_value_truck'] : 0;
+                                $val_next_crane = 0;
+                                $val_next_truck = isset($prev_tasks[$code]) ? $prev_tasks[$code]['next_change_value_truck'] : ($val_curr_truck + $task['freq']);
+                            } else {
+                                $val_curr_crane = isset($prev_tasks[$code]) ? $prev_tasks[$code]['current_value'] : 0;
+                                $val_curr_truck = 0;
+                                $val_next_crane = isset($prev_tasks[$code]) ? $prev_tasks[$code]['next_change_value'] : ($val_curr_crane + $task['freq']);
+                                $val_next_truck = 0;
+                            }
+                            
                             $val_date = isset($prev_tasks[$code]) ? $prev_tasks[$code]['last_change_date'] : date('Y-m-d');
-                            $val_next = isset($prev_tasks[$code]) ? $prev_tasks[$code]['next_change_value'] : ($val_curr + $task['freq']);
                         ?>
                             <tr>
-                                <td style="font-weight:700; text-align: center;"><?= h($code); ?></td>
-                                <td style="font-size:8px; font-weight:600; text-transform:uppercase; text-align: center;"><?= h($task['type']); ?></td>
-                                <td class="left-align" style="text-align:left; padding-left:8px; font-weight:600;"><?= h($task['name']); ?></td>
-                                <td style="text-align: center; font-weight:700;"><?= number_format($task['freq']); ?></td>
-                                <td>
-                                    <input type="number" 
-                                           id="curr_<?= $code; ?>" 
-                                           name="task_curr_<?= $code; ?>" 
-                                           value="<?= $val_curr; ?>" 
-                                           class="form-control-hv" 
-                                           oninput="calcNext('<?= $code; ?>', <?= $task['freq']; ?>)"
-                                           min="0">
+                                <td data-label="Código" style="font-weight:700; text-align: center; color:#1e3a8a;"><?= h($code); ?></td>
+                                <td data-label="Tipo" style="font-weight:700; text-transform:uppercase; text-align: center; font-size: 10px; color: #64748b;"><?= h($task['type']); ?></td>
+                                <td data-label="Actividad" class="left-align" style="text-align:left; padding-left:12px; font-weight:600;"><?= h($task['name']); ?></td>
+                                <td data-label="Frecuencia" style="text-align: center; font-weight:700; color:#1e3a8a;"><?= number_format($task['freq']); ?></td>
+                                
+                                <td data-label="Horómetro Grúa (Actual)">
+                                    <?php if ($is_truck): ?>
+                                        <input type="number" name="task_curr_crane_<?= $code; ?>" value="0" class="form-control-hv" readonly style="background: #f1f5f9; color: #94a3b8;">
+                                    <?php else: ?>
+                                        <input type="number" 
+                                               id="curr_crane_<?= $code; ?>" 
+                                               name="task_curr_crane_<?= $code; ?>" 
+                                               value="<?= $val_curr_crane; ?>" 
+                                               class="form-control-hv" 
+                                               oninput="calcNext('<?= $code; ?>', <?= $task['freq']; ?>, 'crane')"
+                                               min="0">
+                                    <?php endif; ?>
                                 </td>
-                                <td>
+                                
+                                <td data-label="Horómetro Camión (Actual)">
+                                    <?php if ($is_truck): ?>
+                                        <input type="number" 
+                                               id="curr_truck_<?= $code; ?>" 
+                                               name="task_curr_truck_<?= $code; ?>" 
+                                               value="<?= $val_curr_truck; ?>" 
+                                               class="form-control-hv" 
+                                               oninput="calcNext('<?= $code; ?>', <?= $task['freq']; ?>, 'truck')"
+                                               min="0">
+                                    <?php else: ?>
+                                        <input type="number" name="task_curr_truck_<?= $code; ?>" value="0" class="form-control-hv" readonly style="background: #f1f5f9; color: #94a3b8;">
+                                    <?php endif; ?>
+                                </td>
+                                
+                                <td data-label="Fecha Cambio">
                                     <input type="date" name="task_date_<?= $code; ?>" value="<?= h($val_date); ?>" class="form-control-hv">
                                 </td>
-                                <td>
-                                    <input type="number" 
-                                           id="next_<?= $code; ?>" 
-                                           name="task_next_<?= $code; ?>" 
-                                           value="<?= $val_next; ?>" 
-                                           class="form-control-hv" 
-                                           min="0">
+                                
+                                <td data-label="Horómetro Grúa (Próximo)">
+                                    <?php if ($is_truck): ?>
+                                        <input type="number" name="task_next_crane_<?= $code; ?>" value="0" class="form-control-hv" readonly style="background: #f1f5f9; color: #94a3b8;">
+                                    <?php else: ?>
+                                        <input type="number" 
+                                               id="next_crane_<?= $code; ?>" 
+                                               name="task_next_crane_<?= $code; ?>" 
+                                               value="<?= $val_next_crane; ?>" 
+                                               class="form-control-hv" 
+                                               min="0"
+                                               style="font-weight: 700; color: #10b981;">
+                                    <?php endif; ?>
                                 </td>
-                                <td style="text-align: center;" class="no-print">
-                                    <button type="button" onclick="deleteActivity('<?= $code; ?>', '<?= h($task['name']); ?>')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;" title="Eliminar actividad">🗑️</button>
+                                
+                                <td data-label="Horómetro Camión (Próximo)">
+                                    <?php if ($is_truck): ?>
+                                        <input type="number" 
+                                               id="next_truck_<?= $code; ?>" 
+                                               name="task_next_truck_<?= $code; ?>" 
+                                               value="<?= $val_next_truck; ?>" 
+                                               class="form-control-hv" 
+                                               min="0"
+                                               style="font-weight: 700; color: #10b981;">
+                                    <?php else: ?>
+                                        <input type="number" name="task_next_truck_<?= $code; ?>" value="0" class="form-control-hv" readonly style="background: #f1f5f9; color: #94a3b8;">
+                                    <?php endif; ?>
+                                </td>
+                                
+                                <td data-label="" style="text-align: center;" class="no-print">
+                                    <button type="button" onclick="deleteActivity('<?= $code; ?>', '<?= h($task['name']); ?>')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px;" title="Eliminar actividad">🗑️</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -535,9 +709,9 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                 </table>
 
                 <!-- SECCIÓN 4: DETALLE DE ESLINGAS (CAMPOS EDITABLES DINÁMICOS) -->
-                <div class="hv-section-title" style="border-top:1px solid #1e293b;">Detalle de Eslingas (Certificado DEC 1930 OIN 2941)</div>
-                <div style="display:grid; grid-template-columns: 1.8fr 2.2fr; font-size:9px;">
-                    <div style="border-right: 2px solid #1e293b; padding-bottom: 12px;">
+                <div class="hv-section-title" style="border-top:1px solid #334155;">Detalle de Eslingas (Certificado DEC 1930 OIN 2941)</div>
+                <div style="display:grid; grid-template-columns: 1.8fr 2.2fr;">
+                    <div style="border-right: 2px solid #334155; padding-bottom: 12px;">
                         <table class="hv-table" style="width:100%; border:none;">
                             <thead>
                                 <tr>
@@ -562,46 +736,60 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
                                 foreach ($prev_slings as $sling): 
                                 ?>
                                     <tr>
-                                        <td style="border-left:none; font-weight:bold; text-align: center; font-size: 11px;">
-                                            <input type="text" name="sling_item[]" value="<?= h($sling['item']); ?>" class="form-control-hv" style="font-weight:700; background:transparent; border:none;" required readonly>
+                                        <td data-label="Item" style="border-left:none; font-weight:bold; text-align: center; font-size: 12px;">
+                                            <input type="text" name="sling_item[]" value="<?= h($sling['item']); ?>" class="form-control-hv" style="font-weight:700; background:transparent; border:none; text-align:center;" required readonly>
                                         </td>
-                                        <td>
+                                        <td data-label="Precinto">
                                             <input type="text" name="sling_precinto[]" value="<?= h($sling['no_precinto']); ?>" class="form-control-hv" placeholder="Nro Precinto" required>
                                         </td>
-                                        <td>
+                                        <td data-label="Cód Fábrica">
                                             <input type="text" name="sling_cod[]" value="<?= h($sling['cod_fabrica']); ?>" class="form-control-hv" placeholder="Cód. Fábrica" required style="font-family: monospace;">
                                         </td>
-                                        <td>
+                                        <td data-label="Última Insp.">
                                             <input type="date" name="sling_date[]" value="<?= h($sling['ultima_inspeccion']); ?>" class="form-control-hv" required>
                                         </td>
-                                        <td style="border-right:none; text-align: center;" class="no-print">
-                                            <button type="button" onclick="this.closest('tr').remove()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;" title="Eliminar eslinga">❌</button>
+                                        <td data-label="" style="border-right:none; text-align: center;" class="no-print">
+                                            <button type="button" onclick="this.closest('tr').remove()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px;" title="Eliminar eslinga">❌</button>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="addSlingRow()" style="margin-top: 12px; margin-left: 12px; background-color: #f1f5f9; border-color: #cbd5e1; color: #334155; font-size: 11px; font-weight: 700;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addSlingRow()" style="margin-top: 12px; margin-left: 12px; background-color: #f1f5f9; border-color: #cbd5e1; color: #334155; font-size: 12px; font-weight: 700; padding: 8px 12px;">
                             ➕ Agregar Nueva Eslinga
                         </button>
                     </div>
-                    <div style="padding:15px; display:flex; flex-direction:column; justify-content:center; line-height:1.6; background:#fffdf5; font-size: 10px;">
-                        <p style="font-weight:bold; color:#854d0e; margin-bottom:6px; text-transform:uppercase; font-size:10px; letter-spacing: 0.5px;">Eslingas del Equipo G-<?= str_pad($crane['id'], 2, '0', STR_PAD_LEFT); ?></p>
+                    <div style="padding:20px; display:flex; flex-direction:column; justify-content:center; line-height:1.6; background:#fffdf5; font-size: 12px;">
+                        <p style="font-weight:800; color:#854d0e; margin-bottom:8px; text-transform:uppercase; letter-spacing: 0.5px;">Eslingas del Equipo <?= h($crane['crane_code'] ?: 'G-' . str_pad($crane['id'], 2, '0', STR_PAD_LEFT)); ?></p>
                         <p>Las labores de eslingas nuevas iniciaron a partir del **08 de Febrero de 2024** con vigencia de un (1) año según su uso y condiciones generales. Se debe realizar obligatoriamente la inspección mensual correspondiente por el Departamento de Seguridad Industrial.</p>
-                        <p style="margin-top:8px; font-weight:bold; color: #1e293b;">Última Inspección General Registrada: 06/02/2024</p>
+                        <p style="margin-top:10px; font-weight:800; color: #1e293b;">Última Inspección General Registrada: 06/02/2024</p>
                     </div>
                 </div>
 
                 <!-- SECCIÓN 5: PIE DE FIRMAS Y APROBACIÓN (SELECCIÓN DIRECTA) -->
                 <div class="hv-footer">
                     <div class="hv-footer-section">
-                        <strong style="font-size:9px; text-transform:uppercase; color:var(--text-muted);">Nombre del Operador</strong>
-                        <input type="text" name="operator_name_signature" id="operator_name_signature" list="operators" value="<?= h($_SESSION['fullname'] ?? ''); ?>" required style="border:none; border-bottom:1.5px solid #000; height:35px; width:100%; font-weight:700; font-size:13px; text-transform:uppercase; color: var(--primary); padding:0; background:transparent; outline:none; margin-top:10px;" autocomplete="off" placeholder="ESCRIBE O SELECCIONA OPERADOR">
+                        <strong style="font-size:11px; text-transform:uppercase; color:var(--text-muted); display:block;">Nombre del Operador</strong>
+                        <input type="text" name="operator_name_signature" id="operator_name_signature" list="operators" value="<?= h($_SESSION['fullname'] ?? ''); ?>" required style="border:none; border-bottom:2px solid #334155; height:40px; width:100%; font-weight:800; font-size:14px; text-transform:uppercase; color: var(--primary); padding:4px 0; background:transparent; outline:none; margin-top:8px;" autocomplete="off" placeholder="ESCRIBE O SELECCIONA OPERADOR">
+                        
+                        <!-- NUEVA PIZARRA DE FIRMA DIGITAL INTERACTIVA -->
+                        <div style="margin-top: 20px; position: relative;" class="no-print">
+                            <strong style="font-size:11px; color:#64748b; display:block; margin-bottom:6px; text-transform:uppercase; font-weight:700;">✍️ FIRMAR AQUÍ ABAJO (CON EL DEDO O MOUSE)</strong>
+                            <div style="border: 2px dashed #94a3b8; border-radius: 8px; background:#fdfdfd; width:100%; height:140px; position:relative; overflow:hidden; box-shadow: inset 0 2px 6px rgba(0,0,0,0.04);">
+                                <canvas id="signature-pad" style="position:absolute; left:0; top:0; width:100%; height:100%; cursor:crosshair; touch-action: none;"></canvas>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                                <button type="button" onclick="clearSignature()" style="background:#fee2e2; border:1.5px solid #fca5a5; color:#b91c1c; font-size:11px; cursor:pointer; padding:6px 10px; border-radius:6px; font-weight:700;">🧹 Borrar Trazo</button>
+                                <span style="font-size:11px; color:#94a3b8; font-style:italic; font-weight:500;">Trazo digital registrado</span>
+                            </div>
+                            <!-- Input oculto que enviará el Base64 -->
+                            <input type="hidden" name="signature_data" id="hidden-signature-input">
+                        </div>
                     </div>
-                    <div class="hv-footer-section" style="background:#eff6ff;">
-                        <strong style="font-size:9px; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:8px;">Condición Operativa del Equipo *</strong>
+                    <div class="hv-footer-section" style="background:#f8fafc; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <strong style="font-size:11px; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:12px; font-weight:700;">Condición Operativa del Equipo *</strong>
                         <div style="display:flex; justify-content:center; align-items:center; width: 100%;">
-                            <select name="operating_status" class="form-control-hv" style="font-size:13px; font-weight:800; height: 38px; color:#1e3a8a; border: 1.5px solid #2563eb; background:#fff; padding: 4px 12px; border-radius: 6px; width: 80%;">
+                            <select name="operating_status" class="form-control-hv" style="font-size:13px; font-weight:800; height: 42px; color:#1e3a8a; border: 2px solid #2563eb; background:#fff; padding: 6px 16px; border-radius: 8px; width: 85%; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.05);">
                                 <option value="approved" selected>🟢 APROBADO PARA OPERAR</option>
                                 <option value="pending">🟡 OPERACIÓN PENDIENTE</option>
                                 <option value="rejected">🔴 NO APROBADO (INAPTO)</option>
@@ -630,9 +818,9 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
 
     <script>
         // Cálculo automático interactivo del próximo cambio basado en horómetro actual y frecuencia de cada tarea
-        function calcNext(code, freq) {
-            const currInput = document.getElementById('curr_' + code);
-            const nextInput = document.getElementById('next_' + code);
+        function calcNext(code, freq, type) {
+            const currInput = document.getElementById('curr_' + type + '_' + code);
+            const nextInput = document.getElementById('next_' + type + '_' + code);
             
             if (currInput && nextInput) {
                 const val = parseInt(currInput.value) || 0;
@@ -707,19 +895,19 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
             const rowCount = tbody.rows.length + 21; // Generación automática de ítem (21, 22, 23, 24, 25...)
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="border-left:none; font-weight:bold; text-align: center; font-size: 11px;">
+                <td data-label="Item" style="border-left:none; font-weight:bold; text-align: center; font-size: 11px;">
                     <input type="text" name="sling_item[]" value="${rowCount}" class="form-control-hv" style="font-weight:700; background:transparent; border:none;" required readonly>
                 </td>
-                <td>
+                <td data-label="Precinto">
                     <input type="text" name="sling_precinto[]" value="" class="form-control-hv" placeholder="Nro Precinto" required>
                 </td>
-                <td>
+                <td data-label="Cód Fábrica">
                     <input type="text" name="sling_cod[]" value="" class="form-control-hv" placeholder="Cód. Fábrica" required style="font-family: monospace;">
                 </td>
-                <td>
+                <td data-label="Última Insp.">
                     <input type="date" name="sling_date[]" value="${new Date().toISOString().split('T')[0]}" class="form-control-hv" required>
                 </td>
-                <td style="border-right:none; text-align: center;" class="no-print">
+                <td data-label="" style="border-right:none; text-align: center;" class="no-print">
                     <button type="button" onclick="this.closest('tr').remove()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;" title="Eliminar eslinga">❌</button>
                 </td>
             `;
@@ -739,6 +927,101 @@ $fluids = json_decode($crane['fluids_info'] ?? '', true) ?? [];
             
             // Sincronizar inicialmente
             operatorSignatureInput.value = operatorNameInput.value.toUpperCase();
+        }
+
+        // --- Lógica de Firma Digital en Canvas ---
+        const canvas = document.getElementById('signature-pad');
+        const hiddenSigInput = document.getElementById('hidden-signature-input');
+        const mainForm = document.getElementById('main-preop-form');
+        let isBlank = true; // Para validar si realmente firmó
+
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            
+            // Ajustar el tamaño interno del canvas al tamaño visual real en el DOM
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                // Restaurar configuración de trazo
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 2;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+            }
+            window.addEventListener('resize', resizeCanvas);
+            setTimeout(resizeCanvas, 100); // Esperar a renderizado inicial
+
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+
+            function getPosition(e) {
+                const rect = canvas.getBoundingClientRect();
+                let clientX, clientY;
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+
+            function startDrawing(e) {
+                isDrawing = true;
+                isBlank = false;
+                const pos = getPosition(e);
+                lastX = pos.x;
+                lastY = pos.y;
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                if (e.cancelable) e.preventDefault();
+            }
+
+            function draw(e) {
+                if (!isDrawing) return;
+                const pos = getPosition(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                if (e.cancelable) e.preventDefault();
+            }
+
+            function stopDrawing() {
+                if (isDrawing) ctx.closePath();
+                isDrawing = false;
+            }
+
+            // Eventos Mouse
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            window.addEventListener('mouseup', stopDrawing);
+
+            // Eventos Táctiles (Móvil)
+            canvas.addEventListener('touchstart', startDrawing, {passive: false});
+            canvas.addEventListener('touchmove', draw, {passive: false});
+            canvas.addEventListener('touchend', stopDrawing);
+
+            // Función pública para borrar
+            window.clearSignature = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                isBlank = true;
+                hiddenSigInput.value = '';
+            }
+
+            // Interceptar Envío del Formulario para exportar imagen
+            if (mainForm) {
+                mainForm.addEventListener('submit', function(e) {
+                    // Si no está en blanco, exportar base64. Si está en blanco enviar null.
+                    if (!isBlank) {
+                        hiddenSigInput.value = canvas.toDataURL('image/png');
+                    }
+                });
+            }
         }
     </script>
 </body>

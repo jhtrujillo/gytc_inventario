@@ -309,57 +309,62 @@ table.data-table tr:hover td {
    ------------------------------------------------------------- */
 .hoja-vida-container {
     background-color: white;
-    border: 2px solid #1e293b;
+    border: 2px solid #334155; /* Borde Slate más amigable */
     margin: 24px auto;
-    max-width: 900px;
-    box-shadow: var(--shadow-md);
-    font-size: 11px;
-    color: #000;
+    max-width: 1300px; /* Un poco más ancho para mayor comodidad */
+    box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.1);
+    font-size: 13px; /* Aumentado de 11px */
+    color: #0f172a;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .hv-header {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    border-bottom: 2px solid #1e293b;
+    border-bottom: 2px solid #334155;
 }
 
 .hv-header-left {
-    padding: 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
+    background-color: #f8fafc;
 }
 
 .hv-header-left h1 {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 18px; /* Aumentado de 14px */
+    font-weight: 800;
     text-transform: uppercase;
+    color: #1e3a8a;
 }
 
 .hv-header-left h2 {
-    font-size: 10px;
-    color: #475569;
+    font-size: 12px; /* Aumentado de 10px */
+    color: #64748b;
     margin-top: 4px;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .hv-header-right {
-    border-left: 2px solid #1e293b;
+    border-left: 2px solid #334155;
     display: grid;
     grid-template-rows: repeat(3, 1fr);
     text-align: center;
-    font-size: 10px;
+    font-size: 12px;
 }
 
 .hv-header-cell {
-    border-bottom: 1px solid #1e293b;
-    padding: 6px;
+    border-bottom: 1px solid #cbd5e1;
+    padding: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .hv-header-cell:last-child {
@@ -367,14 +372,15 @@ table.data-table tr:hover td {
 }
 
 .hv-section-title {
-    background-color: #4338ca;
+    background-color: #1e3a8a; /* Azul corporativo más profundo */
     color: white;
     text-align: center;
     font-weight: 700;
-    padding: 4px;
+    padding: 8px; /* Aumentado de 4px */
     text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 0.5px;
+    font-size: 13px; /* Aumentado de 11px */
+    letter-spacing: 1px;
+    border-bottom: 2px solid #334155;
 }
 
 .hv-grid-2 {
@@ -385,13 +391,14 @@ table.data-table tr:hover td {
 .hv-tech-details {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid #334155;
 }
 
 .hv-tech-cell {
-    border-right: 1px solid #1e293b;
-    border-bottom: 1px solid #1e293b;
-    padding: 6px;
+    border-right: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+    padding: 10px 12px; /* Aumentado padding */
+    line-height: 1.5;
 }
 
 .hv-tech-cell:nth-child(2n) {
@@ -399,40 +406,44 @@ table.data-table tr:hover td {
 }
 
 .hv-tech-cell strong {
-    color: #334155;
+    color: #475569;
     text-transform: uppercase;
-    font-size: 10px;
+    font-size: 11px; /* Aumentado de 10px */
+    letter-spacing: 0.5px;
 }
 
 .hv-photo-container {
-    border-left: 2px solid #1e293b;
+    border-left: 2px solid #334155;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 12px;
-    background-color: #f8fafc;
+    padding: 20px;
+    background-color: #f1f5f9;
 }
 
 .hv-photo-container img {
     max-width: 100%;
-    max-height: 180px;
-    border-radius: 4px;
+    max-height: 220px; /* Un poco más alto */
+    border-radius: 6px;
     object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .hv-doc-checklist {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid #334155;
+    background-color: #ffffff;
 }
 
 .hv-doc-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 12px;
-    border-right: 1px solid #1e293b;
-    border-bottom: 1px solid #1e293b;
+    padding: 10px 16px; /* Aumentado */
+    border-right: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+    font-weight: 500;
 }
 
 .hv-doc-row:nth-child(3n) {
@@ -440,14 +451,17 @@ table.data-table tr:hover td {
 }
 
 .hv-doc-checkbox {
-    width: 14px;
-    height: 14px;
-    border: 1px solid #000;
+    width: 20px; /* Aumentado */
+    height: 20px; /* Aumentado */
+    border: 1.5px solid #334155;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 10px;
+    font-weight: 800;
+    font-size: 12px; /* Aumentado */
+    border-radius: 4px;
+    background-color: #f8fafc;
+    color: #1e3a8a;
 }
 
 /* Tabla de Mantenimiento dentro de la Hoja de Vida */
@@ -457,38 +471,45 @@ table.data-table tr:hover td {
 }
 
 .hv-table th {
-    background-color: #1e3a8a;
+    background-color: #334155; /* Cambiado a Slate oscuro para ser más amigable */
     color: white;
     font-weight: 700;
     text-align: center;
-    font-size: 9px;
-    padding: 5px;
-    border: 1px solid #1e293b;
+    font-size: 11px; /* Aumentado de 9px */
+    padding: 10px 6px; /* Aumentado de 5px */
+    border: 1px solid #475569;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .hv-table td {
-    padding: 4px;
-    border: 1px solid #1e293b;
-    font-size: 9px;
+    padding: 8px 6px; /* Aumentado de 4px */
+    border: 1px solid #e2e8f0; /* Borde interno más ligero */
+    font-size: 12px; /* Aumentado de 9px */
     text-align: center;
+    font-weight: 500;
+}
+
+.hv-table tbody tr:nth-child(even) {
+    background-color: #f8fafc; /* Alternancia de filas amigable */
 }
 
 .hv-table td.left-align {
     text-align: left;
-    padding-left: 8px;
+    padding-left: 12px;
 }
 
 /* Bloque Inferior */
 .hv-footer {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    border-top: 2px solid #1e293b;
+    border-top: 2px solid #334155;
 }
 
 .hv-footer-section {
-    padding: 12px;
-    border-right: 1px solid #1e293b;
+    padding: 20px; /* Aumentado de 12px */
+    border-right: 2px solid #334155;
+    background-color: #f8fafc;
 }
 
 .hv-footer-section:last-child {
@@ -497,26 +518,30 @@ table.data-table tr:hover td {
 
 .status-badge {
     display: inline-block;
-    padding: 4px 8px;
-    font-weight: 600;
-    font-size: 11px;
-    border-radius: 4px;
+    padding: 8px 16px; /* Aumentado */
+    font-weight: 700;
+    font-size: 13px; /* Aumentado de 11px */
+    border-radius: 6px;
     text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
 .status-badge-approved {
-    background-color: var(--success-light);
+    background-color: #d1fae5;
     color: #065f46;
+    border: 1px solid #a7f3d0;
 }
 
 .status-badge-pending {
-    background-color: var(--warning-light);
+    background-color: #fef3c7;
     color: #92400e;
+    border: 1px solid #fde68a;
 }
 
 .status-badge-rejected {
-    background-color: var(--danger-light);
+    background-color: #fee2e2;
     color: #991b1b;
+    border: 1px solid #fecaca;
 }
 
 /* Estilos de Impresión */
@@ -552,7 +577,7 @@ table.data-table tr:hover td {
 
 /* Prevenir que el papel físico colapse en anchos diminutos y forzar el scroll lateral en el wrapper */
 .hoja-vida-container {
-    min-width: 850px;
+    min-width: 1200px;
 }
 
 @media screen and (max-width: 768px) {
@@ -579,14 +604,128 @@ table.data-table tr:hover td {
         grid-template-columns: 1fr;
     }
     
-    /* Aumentar legibilidad de tablas de datos en scroll horizontal */
-    .data-table {
-        min-width: 600px;
+    /* Mejora radical: Tablas dinámicas en cascada (Mobile Cards) */
+    .table-responsive {
+        background: none;
+        border: none;
+        box-shadow: none;
     }
     
+    .data-table {
+        border: none;
+        background-color: transparent;
+    }
+
+    .data-table thead {
+        display: none; /* Ocultar encabezados visuales */
+    }
+
+    .data-table, .data-table tbody, .data-table tr, .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .data-table tr {
+        background-color: var(--bg-card);
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+        padding: 12px;
+        transition: all 0.2s;
+    }
+
+    .data-table tr:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .data-table td {
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 12px 8px;
+        text-align: right; /* Valor a la derecha */
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+    }
+
+    .data-table td:last-child {
+        border-bottom: none;
+        padding-bottom: 4px;
+        margin-top: 8px;
+        justify-content: center; /* Botones de acción centrados */
+        background-color: #f8fafc;
+        border-radius: 0 0 8px 8px;
+        margin: 8px -12px -12px -12px;
+        padding: 16px;
+    }
+
+    /* Insertar el label a partir del atributo data-label */
+    .data-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        text-align: left;
+        padding-right: 12px;
+    }
+
+    /* Para casos donde no queremos data-label visible */
+    .data-table td[data-label=""]::before {
+        display: none;
+    }
+    
+    .data-table td[data-label=""] {
+        text-align: center;
+        justify-content: center;
+    }
+
     /* Ajustar tabulador dinámico si existe */
     .nav-tabs {
         flex-wrap: wrap;
+    }
+
+    /* Ajustes menores en cabeceras para móvil */
+    .crane-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 16px;
+    }
+    .crane-header div[style*="flex"] {
+        width: 100%;
+    }
+    .crane-header .btn {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .ficha-web-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .tabs-container {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+    }
+    .tab-button {
+        padding: 10px 16px;
+        flex-shrink: 0;
+    }
+    
+    /* Ajuste para formularios en línea de configuración en móvil */
+    .inline-form {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    .inline-form .form-group {
+        max-width: 100% !important;
     }
 }
 

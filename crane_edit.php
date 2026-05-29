@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $chassis_series = trim($_POST['chassis_series'] ?? '');
     $motor_series = trim($_POST['motor_series'] ?? '');
     $fuel_type = trim($_POST['fuel_type'] ?? 'DIESEL');
+    $crane_code = trim($_POST['crane_code'] ?? '');
 
     // Procesar carga de archivo para la foto de la grúa
     $image_path = $crane['image_path'] ?? 'images/crane_xcmg.png';
@@ -75,10 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fluids_json = json_encode($fluids_new, JSON_UNESCAPED_UNICODE);
 
     if (empty($error)) {
-        if (!empty($brand) && !empty($line) && !empty($capacity) && !empty($model) && !empty($chassis_series) && !empty($motor_series)) {
+        if (!empty($crane_code) && !empty($brand) && !empty($line) && !empty($capacity) && !empty($model) && !empty($chassis_series) && !empty($motor_series)) {
             try {
-                $stmt = $pdo->prepare("UPDATE cranes SET machine_name = ?, brand = ?, line = ?, capacity = ?, model = ?, chassis_series = ?, motor_series = ?, fuel_type = ?, fluids_info = ?, image_path = ? WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE cranes SET crane_code = ?, machine_name = ?, brand = ?, line = ?, capacity = ?, model = ?, chassis_series = ?, motor_series = ?, fuel_type = ?, fluids_info = ?, image_path = ? WHERE id = ?");
                 $stmt->execute([
+                    $crane_code,
                     $machine_name,
                     $brand,
                     $line,
@@ -142,9 +144,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form action="crane_edit.php?id=<?= $id; ?>" method="POST" enctype="multipart/form-data">
                 <h3 style="font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px; font-weight: 600; color: var(--text-muted);">Características del Equipo</h3>
 
-                <div class="form-group">
-                    <label for="machine_name">Nombre de Máquina / Tipo de Equipo *</label>
-                    <input type="text" id="machine_name" name="machine_name" class="form-control" value="<?= h($crane['machine_name']); ?>" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="crane_code">Código de Grúa / Equipo *</label>
+                        <input type="text" id="crane_code" name="crane_code" class="form-control" value="<?= h($crane['crane_code']); ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="machine_name">Nombre de Máquina / Tipo de Equipo *</label>
+                        <input type="text" id="machine_name" name="machine_name" class="form-control" value="<?= h($crane['machine_name']); ?>" required>
+                    </div>
                 </div>
 
                 <div class="form-row">

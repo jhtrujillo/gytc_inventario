@@ -2,8 +2,43 @@
 require_once 'config.php';
 require_login();
 
-// Obtener estadísticas
+// Obtener estadísticas y Alertas Inteligentes
+$critical_tasks = [];
+$warning_tasks = [];
+$rejected_cranes = [];
+
 try {
+    // 1. Alertas de Mantenimiento (Basado en último horómetro reportado)
+    $sql_alerts = "SELECT 
+                        t.task_name, t.task_code, t.current_value, t.next_change_value, t.current_value_truck, t.next_change_value_truck,
+                        IF(t.next_change_value_truck > 0, t.next_change_value_truck - t.current_value_truck, t.next_change_value - t.current_value) as remaining,
+                        c.id as crane_id, c.brand, c.line, c.crane_code
+                   FROM preop_tasks t
+                   JOIN preop_logs l ON t.log_id = l.id
+                   JOIN cranes c ON l.crane_id = c.id
+                   WHERE l.id IN (SELECT MAX(sub_l.id) FROM preop_logs sub_l GROUP BY sub_l.crane_id)
+                   HAVING remaining <= 50
+                   ORDER BY remaining ASC";
+    $stmt_alerts = $pdo->query($sql_alerts);
+    $alerts_raw = $stmt_alerts->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($alerts_raw as $row) {
+        if ($row['remaining'] <= 0) {
+            $critical_tasks[] = $row;
+        } else {
+            $warning_tasks[] = $row;
+        }
+    }
+
+    // 2. Alertas de Estatus Operativo (Máquinas Inaptas en último reporte)
+    $sql_rejected = "SELECT l.id, l.log_date, c.id as crane_id, c.brand, c.line, c.crane_code, l.operator_name
+                     FROM preop_logs l
+                     JOIN cranes c ON l.crane_id = c.id
+                     WHERE l.id IN (SELECT MAX(sub_l.id) FROM preop_logs sub_l GROUP BY sub_l.crane_id)
+                     AND l.operating_status = 'rejected'";
+    $rejected_cranes = $pdo->query($sql_rejected)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Estadísticas Estándar
     // Total grúas
     $stmt = $pdo->query("SELECT COUNT(*) FROM cranes");
     $total_cranes = $stmt->fetchColumn();
@@ -21,11 +56,11 @@ try {
     $pending_logs = $stmt->fetchColumn();
 
     // Listar grúas
-    $stmt = $pdo->query("SELECT * FROM cranes ORDER BY brand ASC, line ASC");
+    $stmt = $pdo->query("SELECT * FROM cranes ORDER BY crane_code ASC, brand ASC, line ASC");
     $cranes = $stmt->fetchAll();
 
     // Listar reportes recientes
-    $stmt = $pdo->query("SELECT l.*, c.brand, c.line, u.fullname as operator_full FROM preop_logs l 
+    $stmt = $pdo->query("SELECT l.*, c.brand, c.line, c.crane_code, u.fullname as operator_full FROM preop_logs l 
                          JOIN cranes c ON l.crane_id = c.id 
                          JOIN users u ON l.operator_id = u.id 
                          ORDER BY l.log_date DESC, l.id DESC LIMIT 10");
@@ -70,7 +105,108 @@ $success_msg = $_GET['success'] ?? '';
         .badge-success { background-color: #ecfdf5; color: #065f46; }
         .badge-warning { background-color: #fffbeb; color: #92400e; }
         .badge-danger { background-color: #fef2f2; color: #991b1b; }
+
+        /* SMART ALERT WIDGETS */
+        .alert-center {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            margin-bottom: 40px;
+            border: 1px solid #fee2e2;
+        }
+        .alert-center h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            color: #0f172a;
+            margin-bottom: 20px;
+            font-weight: 800;
+        }
+        .alert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+        .alert-card {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            border-radius: 12px;
+            text-decoration: none !important;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .alert-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .alert-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+        }
+        .alert-card-critical {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .alert-card-critical::before { background: #dc2626; }
+        .alert-card-warning {
+            background: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+        .alert-card-warning::before { background: #d97706; }
+        .alert-card-rejected {
+            background: #450a0a;
+            color: #fef2f2;
+            border: 1px solid #7f1d1d;
+        }
+        .alert-card-rejected::before { background: #ef4444; }
+        
+        .alert-meta {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+        .alert-card-title {
+            font-size: 15px;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+        .alert-value {
+            margin-top: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
     </style>
+
+    <!-- CONFIGURACIÓN PWA (Aplicación Instalable) -->
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="images/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <script>
+        // Registro del Service Worker para habilitar la instalación
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('PWA Service Worker Registrado exitosamente.'))
+                    .catch(err => console.log('Error registrando PWA SW:', err));
+            });
+        }
+    </script>
 </head>
 <body>
     <header class="navbar">
@@ -117,6 +253,48 @@ $success_msg = $_GET['success'] ?? '';
             </div>
         <?php endif; ?>
 
+        <!-- CENTRO INTELIGENTE DE ALERTAS (Solo se muestra si hay acciones requeridas) -->
+        <?php if (!empty($critical_tasks) || !empty($warning_tasks) || !empty($rejected_cranes)): ?>
+            <div class="alert-center">
+                <h3>
+                    <svg width="22" height="22" fill="none" stroke="#dc2626" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    Centro de Alertas Críticas y Mantenimiento
+                </h3>
+                
+                <div class="alert-grid">
+                    <!-- 1. Máquinas Inaptas (Máxima Prioridad) -->
+                    <?php foreach ($rejected_cranes as $r): ?>
+                        <a href="crane_view.php?crane_id=<?= $r['crane_id']; ?>" class="alert-card alert-card-rejected">
+                            <div class="alert-meta">🛑 PARO OPERATIVO</div>
+                            <div class="alert-card-title">[<?= h($r['crane_code'] ?: 'S/C'); ?>] <?= h($r['brand']); ?> - <?= h($r['line']); ?></div>
+                            <div style="font-size: 12px; margin-top: 4px;">Reportada como NO APTA en último preoperacional.</div>
+                            <div class="alert-value">Reportado por: <?= h($r['operator_name']); ?></div>
+                        </a>
+                    <?php endforeach; ?>
+
+                    <!-- 2. Mantenimientos Vencidos (Rojo) -->
+                    <?php foreach ($critical_tasks as $t): ?>
+                        <a href="crane_view.php?crane_id=<?= $t['crane_id']; ?>" class="alert-card alert-card-critical">
+                            <div class="alert-meta">🚨 Mantenimiento Vencido</div>
+                            <div class="alert-card-title"><?= h($t['task_name']); ?> (<?= h($t['task_code']); ?>)</div>
+                            <div style="font-size: 12px; margin-top: 4px;">[<?= h($t['crane_code'] ?: 'S/C'); ?>] <?= h($t['brand']); ?> - <?= h($t['line']); ?></div>
+                            <div class="alert-value">Excedido por: <?= abs($t['remaining']); ?> Horas ⚠️</div>
+                        </a>
+                    <?php endforeach; ?>
+
+                    <!-- 3. Mantenimientos Próximos (Amarillo) -->
+                    <?php foreach ($warning_tasks as $w): ?>
+                        <a href="crane_view.php?crane_id=<?= $w['crane_id']; ?>" class="alert-card alert-card-warning">
+                            <div class="alert-meta">⚠️ Próxima Revisión</div>
+                            <div class="alert-card-title"><?= h($w['task_name']); ?> (<?= h($w['task_code']); ?>)</div>
+                            <div style="font-size: 12px; margin-top: 4px;">[<?= h($w['crane_code'] ?: 'S/C'); ?>] <?= h($w['brand']); ?> - <?= h($w['line']); ?></div>
+                            <div class="alert-value">Restan solo: <?= $w['remaining']; ?> Horas</div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- Panel de Estadísticas -->
         <div class="dashboard-grid">
             <div class="card">
@@ -137,8 +315,6 @@ $success_msg = $_GET['success'] ?? '';
             </div>
         </div>
 
-
-
         <!-- Sección de Inventario de Grúas -->
         <div class="header-section" style="margin-top: 48px;">
             <h2>Inventario de Grúas y Equipos</h2>
@@ -154,6 +330,7 @@ $success_msg = $_GET['success'] ?? '';
             <table class="data-table">
                 <thead>
                     <tr>
+                        <th>Código</th>
                         <th>Máquina / Equipo</th>
                         <th>Marca</th>
                         <th>Línea</th>
@@ -167,17 +344,18 @@ $success_msg = $_GET['success'] ?? '';
                     <?php if (count($cranes) > 0): ?>
                         <?php foreach ($cranes as $crane): ?>
                             <tr>
-                                <td style="font-weight: 600;">
+                                <td data-label="Código" style="font-weight: 700; color: var(--primary);"><?= h($crane['crane_code'] ?: 'S/C'); ?></td>
+                                <td data-label="Máquina / Equipo" style="font-weight: 600;">
                                     <a href="crane_view.php?crane_id=<?= $crane['id']; ?>" style="color: var(--primary); text-decoration: none;">
                                         <?= h($crane['machine_name']); ?>
                                     </a>
                                 </td>
-                                <td><?= h($crane['brand']); ?></td>
-                                <td><?= h($crane['line']); ?></td>
-                                <td><?= h($crane['model']); ?></td>
-                                <td><?= h($crane['capacity']); ?></td>
-                                <td style="font-family: monospace; font-size: 13px;"><?= h($crane['chassis_series']); ?></td>
-                                <td>
+                                <td data-label="Marca"><?= h($crane['brand']); ?></td>
+                                <td data-label="Línea"><?= h($crane['line']); ?></td>
+                                <td data-label="Modelo"><?= h($crane['model']); ?></td>
+                                <td data-label="Capacidad"><?= h($crane['capacity']); ?></td>
+                                <td data-label="Serie Chasis" style="font-family: monospace; font-size: 13px;"><?= h($crane['chassis_series']); ?></td>
+                                <td data-label="">
                                     <div style="display: flex; gap: 8px;">
                                         <a href="preop_create.php?crane_id=<?= $crane['id']; ?>" class="btn btn-primary btn-sm">
                                             Registrar Preop
@@ -193,7 +371,7 @@ $success_msg = $_GET['success'] ?? '';
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 32px;">
                                 No hay grúas registradas en el sistema.
                             </td>
                         </tr>
@@ -201,8 +379,6 @@ $success_msg = $_GET['success'] ?? '';
                 </tbody>
             </table>
         </div>
-
-
 
     </main>
 </body>

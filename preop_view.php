@@ -6,7 +6,7 @@ $id = intval($_GET['id'] ?? 0);
 
 try {
     // Obtener la cabecera del reporte con los datos de la grúa y del operador
-    $stmt = $pdo->prepare("SELECT l.*, c.machine_name, c.brand, c.line, c.capacity, c.model, c.chassis_series, c.motor_series, c.fuel_type, c.fluids_info, c.image_path, u.fullname as registered_by 
+    $stmt = $pdo->prepare("SELECT l.*, c.crane_code, c.machine_name, c.brand, c.line, c.capacity, c.model, c.chassis_series, c.motor_series, c.fuel_type, c.fluids_info, c.image_path, u.fullname as registered_by 
                            FROM preop_logs l 
                            JOIN cranes c ON l.crane_id = c.id 
                            JOIN users u ON l.operator_id = u.id 
@@ -74,7 +74,7 @@ try {
 </head>
 <body style="background-color: #f1f5f9; padding-top: 24px;">
 
-    <div class="container" style="max-width: 900px;">
+    <div class="container" style="max-width: 1300px;">
         
         <!-- BARRA DE ACCIONES (OCULTA AL IMPRIMIR) -->
         <div class="no-print-bar">
@@ -97,8 +97,8 @@ try {
             <!-- ENCABEZADO -->
             <div class="hv-header">
                 <div class="hv-header-left">
-                    <h2 style="font-size:10px; font-weight:bold; color:var(--text-muted); margin-bottom: 2px;">HOJA DE VIDA DE EQUIPO</h2>
-                    <h1 style="font-size:14px; font-weight:800; color:#1e3a8a; letter-spacing:0.5px;">GRÚAS Y TRANSPORTES DE COLOMBIA SAS</h1>
+                    <h2>HOJA DE VIDA DE EQUIPO</h2>
+                    <h1>GRÚAS Y TRANSPORTES DE COLOMBIA SAS</h1>
                 </div>
                 <div class="hv-header-right">
                     <div class="hv-header-cell"><strong>FORMATO:</strong> MT-F-07</div>
@@ -110,31 +110,31 @@ try {
             <!-- SECCIÓN 1: CARACTERÍSTICAS DEL EQUIPO Y REGISTRO FOTOGRÁFICO -->
             <div class="hv-section-title">Características del Equipo e Identificación Técnica</div>
             
-            <div class="hv-grid-2" style="border-bottom: 2px solid #1e293b;">
+            <div class="hv-grid-2" style="border-bottom: 2px solid #334155;">
                 <!-- Detalles de Especificación -->
                 <div style="display:flex; flex-direction:column;">
-                    <div class="hv-tech-cell" style="border-right:1px solid #1e293b; background:#f8fafc;">
+                    <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1; background:#f8fafc;">
                         <strong>MÁQUINA:</strong> <?= h($log['machine_name']); ?>
                     </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #1e293b;">
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>MARCA:</strong> <?= h($log['brand']); ?></div>
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>NRO REGISTRO:</strong> MT<?= str_pad($log['crane_id'], 5, '0', STR_PAD_LEFT); ?></div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #cbd5e1;">
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>MARCA:</strong> <?= h($log['brand']); ?></div>
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>NRO REGISTRO:</strong> MT<?= str_pad($log['crane_id'], 5, '0', STR_PAD_LEFT); ?></div>
                     </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #1e293b;">
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>LÍNEA:</strong> <?= h($log['line']); ?></div>
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>MODELO:</strong> <?= h($log['model']); ?></div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #cbd5e1;">
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>LÍNEA:</strong> <?= h($log['line']); ?></div>
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>MODELO:</strong> <?= h($log['model']); ?></div>
                     </div>
-                    <div class="hv-tech-cell" style="border-right:1px solid #1e293b; border-bottom:1px solid #1e293b;">
+                    <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">
                         <strong>CAPACIDAD:</strong> <?= h($log['capacity']); ?>
                     </div>
-                    <div class="hv-tech-cell" style="border-right:1px solid #1e293b; border-bottom:1px solid #1e293b;">
+                    <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">
                         <strong>SERIE CHASIS:</strong> <?= h($log['chassis_series']); ?>
                     </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #1e293b;">
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>SERIE MOTOR:</strong> <?= h($log['motor_series']); ?></div>
-                        <div class="hv-tech-cell" style="border-right:1px solid #1e293b;"><strong>COMBUSTIBLE:</strong> <?= h($log['fuel_type']); ?></div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; border-bottom:1px solid #cbd5e1;">
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>SERIE MOTOR:</strong> <?= h($log['motor_series']); ?></div>
+                        <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1;"><strong>COMBUSTIBLE:</strong> <?= h($log['fuel_type']); ?></div>
                     </div>
-                    <div class="hv-tech-cell" style="border-right:1px solid #1e293b; font-size:10px; line-height:1.4;">
+                    <div class="hv-tech-cell" style="border-right:1px solid #cbd5e1; line-height:1.5;">
                         <strong>FLUIDOS Y CAPACIDADES:</strong><br>
                         • Aceite Motor: <?= h($fluids['aceite_motor'] ?? 'N/A'); ?><br>
                         • Aceite Hidráulico: <?= h($fluids['aceite_hidraulico'] ?? 'N/A'); ?><br>
@@ -149,7 +149,7 @@ try {
             </div>
 
             <!-- SECCIÓN 2: DOCUMENTACIÓN -->
-            <div class="hv-section-title" style="border-top: 1px solid #1e293b;">Validación de Documentación Operativa</div>
+            <div class="hv-section-title" style="border-top: 1px solid #334155;">Validación de Documentación Operativa</div>
             <div class="hv-doc-checklist">
                 <div class="hv-doc-row">
                     <span>Planilla de Seguridad del Operador</span>
@@ -187,44 +187,54 @@ try {
                         <th style="width: 80px;">Fecha Act.</th>
                         <th style="width: 140px;">Operador Equipo</th>
                     </tr>
-                    <tr>
-                        <td style="font-weight:bold;">G-<?= str_pad($log['crane_id'], 2, '0', STR_PAD_LEFT); ?></td>
-                        <td><?= h($log['brand']) . ' ' . h($log['line']); ?></td>
-                        <td><?= h($log['model']); ?></td>
-                        <td><?= number_format($log['horometro_truck']); ?> Hrs</td>
-                        <td><?= number_format($log['horometro_crane']); ?> Hrs</td>
-                        <td><?= date('d/m/Y', strtotime($log['log_date'])); ?></td>
-                        <td style="text-transform:uppercase; font-weight:600;"><?= h($log['operator_name']); ?></td>
+                    <tr style="background-color: #f1f5f9;">
+                        <td style="font-weight:bold; color:#1e3a8a;"><?= h($log['crane_code'] ?: 'G-' . str_pad($log['crane_id'], 2, '0', STR_PAD_LEFT)); ?></td>
+                        <td style="font-weight: 600;"><?= h($log['brand']) . ' ' . h($log['line']); ?></td>
+                        <td style="font-weight: 600;"><?= h($log['model']); ?></td>
+                        <td style="font-weight: 600;"><?= number_format($log['horometro_truck']); ?> Hrs</td>
+                        <td style="font-weight: 600;"><?= number_format($log['horometro_crane']); ?> Hrs</td>
+                        <td style="font-weight: 600;"><?= date('d/m/Y', strtotime($log['log_date'])); ?></td>
+                        <td style="text-transform:uppercase; font-weight:700; color:#1e3a8a;"><?= h($log['operator_name']); ?></td>
                     </tr>
                     <tr>
                         <th>Código</th>
                         <th>Tipo</th>
-                        <th class="left-align" style="text-align:left; padding-left:8px;">Actividad de Mantenimiento</th>
+                        <th class="left-align" style="text-align:left; padding-left:12px;">Actividad de Mantenimiento</th>
                         <th>Frecuencia</th>
-                        <th>Cambio Actual</th>
+                        <th>Horómetro Grúa (Actual)</th>
+                        <th>Horómetro Camión (Actual)</th>
                         <th>Fecha de Cambio</th>
-                        <th>Próximo Cambio</th>
+                        <th>Horómetro Grúa (Próximo)</th>
+                        <th>Horómetro Camión (Próximo)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($tasks as $task): ?>
+                    <?php foreach ($tasks as $task): 
+                        $is_truck = (stripos($task['task_name'], 'camion') !== false || stripos($task['task_name'], 'camión') !== false || in_array(substr($task['task_code'], 0, 1), ['1', '2', '3', '4', '5']));
+                        $curr_crane = $is_truck ? '-' : number_format($task['current_value']) . ' Hrs';
+                        $curr_truck = $is_truck ? number_format($task['current_value_truck']) . ' Hrs' : '-';
+                        $next_crane = $is_truck ? '-' : number_format($task['next_change_value']) . ' Hrs';
+                        $next_truck = $is_truck ? number_format($task['next_change_value_truck']) . ' Hrs' : '-';
+                    ?>
                         <tr>
-                            <td style="font-weight:600;"><?= h($task['task_code']); ?></td>
-                            <td style="font-size:8px; font-weight:500; text-transform:uppercase;"><?= h($task['task_type']); ?></td>
-                            <td class="left-align" style="text-align:left; padding-left:8px; font-weight:600;"><?= h($task['task_name']); ?></td>
+                            <td style="font-weight:700; color: #1e3a8a;"><?= h($task['task_code']); ?></td>
+                            <td style="font-weight:700; text-transform:uppercase; color:#64748b; font-size: 10px;"><?= h($task['task_type']); ?></td>
+                            <td class="left-align" style="text-align:left; padding-left:12px; font-weight:600;"><?= h($task['task_name']); ?></td>
                             <td><?= number_format($task['frequency']); ?></td>
-                            <td><?= number_format($task['current_value']); ?></td>
+                            <td><?= $curr_crane; ?></td>
+                            <td><?= $curr_truck; ?></td>
                             <td><?= $task['last_change_date'] ? date('d/m/Y', strtotime($task['last_change_date'])) : 'N/A'; ?></td>
-                            <td style="font-weight:bold;"><?= number_format($task['next_change_value']); ?></td>
+                            <td style="font-weight:700; color: #10b981;"><?= $next_crane; ?></td>
+                            <td style="font-weight:700; color: #10b981;"><?= $next_truck; ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
 
             <!-- SECCIÓN 4: DETALLE DE ESLINGAS -->
-            <div class="hv-section-title" style="border-top:1px solid #1e293b;">Detalle de Eslingas (Certificado DEC 1930 OIN 2941)</div>
-            <div style="display:grid; grid-template-columns: 1.5fr 2.5fr; font-size:9px;">
-                <div style="border-right: 2px solid #1e293b;">
+            <div class="hv-section-title" style="border-top:1px solid #334155;">Detalle de Eslingas (Certificado DEC 1930 OIN 2941)</div>
+            <div style="display:grid; grid-template-columns: 1.5fr 2.5fr; font-size:12px;">
+                <div style="border-right: 2px solid #334155;">
                     <table class="hv-table" style="width:100%; border:none;">
                         <thead>
                             <tr>
@@ -244,25 +254,30 @@ try {
                         </tbody>
                     </table>
                 </div>
-                <div style="padding:10px; display:flex; flex-direction:column; justify-content:center; line-height:1.5; background:#fffdf5;">
-                    <p style="font-weight:bold; color:#854d0e; margin-bottom:4px; text-transform:uppercase; font-size:9px;">Eslingas del Equipo VIK277</p>
+                <div style="padding:16px; display:flex; flex-direction:column; justify-content:center; line-height:1.6; background:#fffdf5;">
+                    <p style="font-weight:800; color:#854d0e; margin-bottom:8px; text-transform:uppercase;">Eslingas del Equipo <?= h($log['crane_code'] ?: 'G-' . str_pad($log['crane_id'], 2, '0', STR_PAD_LEFT)); ?></p>
                     <p>Las labores de eslingas nuevas iniciaron a partir del **08 de Febrero de 2024** con vigencia de un (1) año según su uso y condiciones generales. Se debe realizar obligatoriamente la inspección mensual correspondiente por el Departamento de Seguridad Industrial.</p>
-                    <p style="margin-top:6px; font-weight:bold;">Última Inspección General Registrada: 06/02/2024</p>
+                    <p style="margin-top:10px; font-weight:800; color:#1e293b;">Última Inspección General Registrada: 06/02/2024</p>
                 </div>
             </div>
 
             <!-- SECCIÓN 5: PIE DE FIRMAS Y APROBACIÓN -->
             <div class="hv-footer">
                 <div class="hv-footer-section">
-                    <strong style="font-size:9px; text-transform:uppercase; color:var(--text-muted);">Nombre del Operador</strong>
-                    <div style="margin-top:16px; border-bottom:1.5px solid #000; height:30px; display:flex; align-items:flex-end; padding-bottom:4px; font-weight:600; font-size:12px; text-transform:uppercase;">
+                    <strong style="font-size:11px; text-transform:uppercase; color:var(--text-muted); display:block;">Nombre del Operador</strong>
+                    <div style="margin-top:8px; border-bottom:2px solid #334155; height:80px; display:flex; align-items:center; justify-content:center; position:relative; background: white; border-radius:4px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.05);">
+                        <?php if (!empty($log['signature_data'])): ?>
+                            <img src="<?= $log['signature_data']; ?>" style="max-height:95%; max-width:95%; object-fit:contain; mix-blend-mode:multiply;">
+                        <?php endif; ?>
+                    </div>
+                    <div style="font-weight:800; font-size:13px; text-transform:uppercase; text-align:center; margin-top:8px; color:#1e3a8a;">
                         <?= h($log['operator_name']); ?>
                     </div>
                 </div>
-                <div class="hv-footer-section" style="background:#fcfdfd;">
-                    <strong style="font-size:9px; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:12px;">Condición Operativa del Equipo</strong>
-                    <div style="display:flex; justify-content:space-around; align-items:center;">
-                        <span class="status-badge <?= $log['operating_status'] === 'approved' ? 'status-badge-approved' : ($log['operating_status'] === 'pending' ? 'status-badge-pending' : 'status-badge-rejected'); ?>" style="font-size:13px; padding:6px 16px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700;">
+                <div class="hv-footer-section" style="background:#f8fafc; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                    <strong style="font-size:11px; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:16px;">Condición Operativa del Equipo</strong>
+                    <div style="display:flex; justify-content:space-around; align-items:center; width:100%;">
+                        <span class="status-badge <?= $log['operating_status'] === 'approved' ? 'status-badge-approved' : ($log['operating_status'] === 'pending' ? 'status-badge-pending' : 'status-badge-rejected'); ?>">
                             <?php 
                             if ($log['operating_status'] === 'approved') echo "APROBADO PARA OPERAR";
                             elseif ($log['operating_status'] === 'pending') echo "OPERACIÓN PENDIENTE";

@@ -1,0 +1,24 @@
+{
+  "name": "G&TC Control de Grúas",
+  "short_name": "G&TC",
+  "description": "Gestión integral de grúas y reportes preoperacionales",
+  "start_url": "dashboard.php",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

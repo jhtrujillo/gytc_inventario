@@ -132,6 +132,7 @@ function createTablesIfNotExist($pdo)
     // Tabla Cranes
     $pdo->exec("CREATE TABLE IF NOT EXISTS cranes (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        crane_code VARCHAR(50) DEFAULT '',
         machine_name VARCHAR(150) NOT NULL DEFAULT 'GRÚA SOBRE RUEDAS- PLUMATELESCOPICA',
         brand VARCHAR(100) NOT NULL,
         line VARCHAR(100) NOT NULL,
@@ -171,11 +172,21 @@ function createTablesIfNotExist($pdo)
         doc_ppe TINYINT(1) DEFAULT 0,
         doc_extinguisher TINYINT(1) DEFAULT 0,
         sling_info TEXT,
-        operating_status ENUM('approved', 'not_approved', 'pending') NOT NULL DEFAULT 'pending',
+        operating_status ENUM('approved', 'rejected', 'pending') NOT NULL DEFAULT 'pending',
+        signature_data LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (crane_id) REFERENCES cranes(id) ON DELETE CASCADE,
         FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB");
+
+    // Parche Automático: Asegurar columna de firma digital si la tabla ya existía previamente
+    try {
+        // Intentamos leer la columna. Si falla, significa que no existe.
+        $pdo->query("SELECT signature_data FROM preop_logs LIMIT 1");
+    } catch (PDOException $e) {
+        // La agregamos dinámicamente
+        $pdo->exec("ALTER TABLE preop_logs ADD COLUMN signature_data LONGTEXT NULL AFTER operating_status");
+    }
 
     // Tabla Preop Tasks
     $pdo->exec("CREATE TABLE IF NOT EXISTS preop_tasks (
@@ -186,10 +197,22 @@ function createTablesIfNotExist($pdo)
         task_name VARCHAR(150) NOT NULL,
         frequency INT NOT NULL,
         current_value INT NOT NULL,
+        current_value_truck INT DEFAULT 0,
         last_change_date DATE,
         next_change_value INT NOT NULL,
+        next_change_value_truck INT DEFAULT 0,
         status VARCHAR(50) DEFAULT 'Normal',
         FOREIGN KEY (log_id) REFERENCES preop_logs(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB");
+
+    // Tabla Crane Documents (Documentos anexos a cada equipo)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS crane_documents (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        crane_id INT NOT NULL,
+        document_name VARCHAR(150) NOT NULL,
+        file_path VARCHAR(255) NOT NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (crane_id) REFERENCES cranes(id) ON DELETE CASCADE
     ) ENGINE=InnoDB");
 
     // Crear usuarios por defecto si la tabla está vacía
@@ -258,8 +281,20 @@ function createTablesIfNotExist($pdo)
 
     // Asegurar columnas de grúa (image_path)
     $columns_cranes = $pdo->query("SHOW COLUMNS FROM cranes")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('crane_code', $columns_cranes)) {
+        $pdo->exec("ALTER TABLE cranes ADD COLUMN crane_code VARCHAR(50) DEFAULT '' AFTER id");
+    }
     if (!in_array('image_path', $columns_cranes)) {
         $pdo->exec("ALTER TABLE cranes ADD COLUMN image_path VARCHAR(255) DEFAULT 'images/crane_xcmg.png' AFTER fluids_info");
+    }
+
+    // Asegurar columnas de tareas preoperacionales (current_value_truck, next_change_value_truck)
+    $columns_tasks = $pdo->query("SHOW COLUMNS FROM preop_tasks")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('current_value_truck', $columns_tasks)) {
+        $pdo->exec("ALTER TABLE preop_tasks ADD COLUMN current_value_truck INT DEFAULT 0 AFTER current_value");
+    }
+    if (!in_array('next_change_value_truck', $columns_tasks)) {
+        $pdo->exec("ALTER TABLE preop_tasks ADD COLUMN next_change_value_truck INT DEFAULT 0 AFTER next_change_value");
     }
 }
 

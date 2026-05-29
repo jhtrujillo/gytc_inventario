@@ -157,7 +157,7 @@ try {
             
             <div style="margin-bottom: 24px;">
                 <h2 style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">Configurar Ficha de Mantenimiento</h2>
-                <p style="color: var(--text-muted); font-size: 14px;">Define los códigos, nombres de actividades y frecuencias de mantenimiento para: <strong><?= h($crane['brand']); ?> - <?= h($crane['line']); ?></strong></p>
+                <p style="color: var(--text-muted); font-size: 14px;">Define los códigos, nombres de actividades y frecuencias de mantenimiento para: <strong>[<?= h($crane['crane_code'] ?: 'S/C'); ?>] <?= h($crane['brand']); ?> - <?= h($crane['line']); ?></strong></p>
             </div>
 
             <?php if (!empty($error)): ?>
@@ -234,11 +234,11 @@ try {
                                         <input type="hidden" name="action" value="edit">
                                         <input type="hidden" name="id" value="<?= $act['id']; ?>">
                                         
-                                        <td style="font-weight: 700; color: var(--text-muted);">
+                                        <td data-label="Código" style="font-weight: 700; color: var(--text-muted);">
                                             <span class="view-mode_<?= $act['id']; ?>"><?= h($act['task_code']); ?></span>
                                             <input type="text" name="task_code" value="<?= h($act['task_code']); ?>" class="form-control edit-mode_<?= $act['id']; ?>" style="display:none; padding:4px 8px; font-size:13px;" required>
                                         </td>
-                                        <td>
+                                        <td data-label="Tipo">
                                             <span class="view-mode_<?= $act['id']; ?> badge" style="background:#e2e8f0; color:#475569;"><?= h($act['task_type']); ?></span>
                                             <select name="task_type" class="form-control edit-mode_<?= $act['id']; ?>" style="display:none; padding:4px 8px; font-size:13px; height:auto;" required>
                                                 <option value="LUBRICACION" <?= $act['task_type'] === 'LUBRICACION' ? 'selected' : ''; ?>>LUBRICACION</option>
@@ -250,15 +250,15 @@ try {
                                                 <option value="OTROS" <?= $act['task_type'] === 'OTROS' ? 'selected' : ''; ?>>OTROS</option>
                                             </select>
                                         </td>
-                                        <td>
+                                        <td data-label="Actividad">
                                             <span class="view-mode_<?= $act['id']; ?>" style="font-weight:600;"><?= h($act['task_name']); ?></span>
                                             <input type="text" name="task_name" value="<?= h($act['task_name']); ?>" class="form-control edit-mode_<?= $act['id']; ?>" style="display:none; padding:4px 8px; font-size:13px;" required>
                                         </td>
-                                        <td style="text-align: center;">
+                                        <td data-label="Frecuencia (Hrs)" style="text-align: center;">
                                             <span class="view-mode_<?= $act['id']; ?>"><?= number_format($act['frequency']); ?> Hrs</span>
                                             <input type="number" name="frequency" value="<?= $act['frequency']; ?>" class="form-control edit-mode_<?= $act['id']; ?>" style="display:none; padding:4px 8px; font-size:13px; text-align:center;" required min="1">
                                         </td>
-                                        <td style="text-align: center;">
+                                        <td data-label="" style="text-align: center;">
                                             <!-- Botones Modo Vista -->
                                             <div class="view-mode_<?= $act['id']; ?>" style="display: flex; gap: 8px; justify-content: center;">
                                                 <button type="button" class="btn btn-secondary btn-sm" onclick="enableEdit(<?= $act['id']; ?>)">✏️ Editar</button>
